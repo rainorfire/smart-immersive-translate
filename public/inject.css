@@ -269,3 +269,8 @@
 .bilens-video-target:empty {
   display: none;
 }
+
+/* 隐藏站点自带字幕容器（保留其 DOM 更新，仅不可见） */
+.bilens-hide-native-caption {
+  visibility: hidden !important;
+}

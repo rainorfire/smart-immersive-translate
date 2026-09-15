@@ -1,4 +1,4 @@
-import { SubtitleOverlay } from './renderer'
+import { markDomCaptionHidden, SubtitleOverlay } from './renderer'
 import { collectTrack } from './source'
 import { DomCueCollector, findCueAt, mergeShortCues, TimelineCalibrator } from './timeline'
 import { SubtitleTranslator } from './translator'
@@ -110,6 +110,10 @@ export class VideoSubtitleController {
 
     this.bindVideoEvents(video)
     this.currentVideoSrc = video.currentSrc || video.src || ''
+    // 双语模式下隐藏站点自带字幕，避免两层字幕重叠
+    if (this.options.bilingual) {
+      markDomCaptionHidden(document, this.genericCaptionSelector ?? this.rule?.captionSelector ?? null, true)
+    }
     this.startLoop()
 
     return this.stateOf(`已接入 ${track.kind} 字幕（${cues.length} 条），正在翻译…`)
@@ -124,6 +128,8 @@ export class VideoSubtitleController {
     this.domTimer = null
 
     if (this.video) this.unbindVideoEvents(this.video)
+    // 还原站点字幕显示
+    markDomCaptionHidden(document, this.genericCaptionSelector ?? this.rule?.captionSelector ?? null, false)
     this.translator.dispose()
     this.overlay.destroy()
     this.calibrator.reset()

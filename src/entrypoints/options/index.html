@@ -100,6 +100,54 @@
       </section>
 
       <section>
+        <h2>交互功能</h2>
+        <label class="check">
+          <input id="hover-enabled" type="checkbox" />
+          <span>鼠标悬停翻译（按住修饰键后悬停段落即翻译）</span>
+        </label>
+        <label class="check">
+          <input id="input-enabled" type="checkbox" />
+          <span>输入框翻译（Alt + I 翻译当前输入框）</span>
+        </label>
+        <label class="check">
+          <input id="selection-enabled" type="checkbox" />
+          <span>划词翻译（选中文本后弹出译文）</span>
+        </label>
+        <label class="check">
+          <input id="image-enabled" type="checkbox" />
+          <span>图片翻译（Alt + 点击图片）</span>
+        </label>
+        <div class="field">
+          <label for="ocr-language">OCR 识别语言</label>
+          <select id="ocr-language">
+            <option value="eng">英语</option>
+            <option value="chi_sim">简体中文</option>
+            <option value="chi_tra">繁体中文</option>
+            <option value="jpn">日语</option>
+            <option value="kor">韩语</option>
+            <option value="fra">法语</option>
+            <option value="deu">德语</option>
+            <option value="rus">俄语</option>
+          </select>
+        </div>
+      </section>
+
+      <section>
+        <h2>PDF 与站点规则</h2>
+        <div class="field">
+          <label for="pdf-mode">PDF 译文显示</label>
+          <select id="pdf-mode">
+            <option value="bilingual">双语对照</option>
+            <option value="translation-only">仅译文</option>
+          </select>
+        </div>
+        <label class="check">
+          <input id="site-rules" type="checkbox" />
+          <span>启用站点规则（针对性翻译正文区域）</span>
+        </label>
+      </section>
+
+      <section>
         <h2>缓存</h2>
         <p class="hint" id="cache-info">读取中…</p>
         <button id="clear-cache">清空译文缓存</button>

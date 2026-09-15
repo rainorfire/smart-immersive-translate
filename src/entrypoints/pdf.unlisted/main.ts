@@ -1,3 +1,4 @@
+import { loadConfig } from '@/shared/config'
 import { PdfViewer } from '@/features/pdf/pdf-viewer'
 import type { PdfLayoutMode } from '@/features/pdf/pdf-translate'
 
@@ -36,6 +37,11 @@ const viewer = new PdfViewer(viewerEl, {
 async function init(): Promise<void> {
   bindControls()
   trackVisiblePage()
+
+  // 应用设置页里的默认显示模式
+  const config = await loadConfig()
+  modeSelect.value = config.pdfLayoutMode
+  viewer.setMode(config.pdfLayoutMode)
 
   const params = new URLSearchParams(location.search)
   const fileUrl = params.get('file')

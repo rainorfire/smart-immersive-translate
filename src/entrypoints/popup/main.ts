@@ -19,6 +19,10 @@ const targetSelect = $<HTMLSelectElement>('target')
 const modeSelect = $<HTMLSelectElement>('mode')
 const statusEl = $<HTMLSpanElement>('status')
 const cacheInfo = $<HTMLSpanElement>('cache-info')
+const quickVideo = $<HTMLInputElement>('quick-video')
+const quickImage = $<HTMLInputElement>('quick-image')
+const quickHover = $<HTMLInputElement>('quick-hover')
+const quickSelection = $<HTMLInputElement>('quick-selection')
 
 let vendors: VendorPreset[] = []
 
@@ -46,6 +50,10 @@ async function init(): Promise<void> {
   apiKeyInput.value = config.engine.apiKey ?? ''
   targetSelect.value = config.targetLanguage
   modeSelect.value = config.mode
+  quickVideo.checked = config.enableVideoSubtitle
+  quickImage.checked = config.enableImageTranslate
+  quickHover.checked = config.enableHoverTranslate
+  quickSelection.checked = config.enableSelectionTranslate
 
   syncVendorRow()
 
@@ -93,6 +101,37 @@ $('translate').addEventListener('click', async () => {
     setStatus('当前页面不可翻译')
   })
 })
+
+$('translate-images').addEventListener('click', async () => {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
+  if (!tab?.id) return
+  await chrome.tabs.sendMessage(tab.id, { type: 'translate-images' }).catch(() => {
+    setStatus('当前页面不可翻译')
+  })
+  setStatus('正在翻译图片…')
+})
+
+$('translate-video').addEventListener('click', async () => {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
+  if (!tab?.id) return
+  await chrome.tabs.sendMessage(tab.id, { type: 'toggle-video-subtitle' }).catch(() => {
+    setStatus('当前页面不可翻译')
+  })
+  setStatus('视频字幕已切换')
+})
+
+/** 快捷开关：改动即保存，无需点保存按钮 */
+for (const box of [quickVideo, quickImage, quickHover, quickSelection]) {
+  box.addEventListener('change', async () => {
+    const config = await loadConfig()
+    config.enableVideoSubtitle = quickVideo.checked
+    config.enableImageTranslate = quickImage.checked
+    config.enableHoverTranslate = quickHover.checked
+    config.enableSelectionTranslate = quickSelection.checked
+    await saveConfig(config)
+    setStatus('已更新')
+  })
+}
 
 $('open-options').addEventListener('click', () => chrome.runtime.openOptionsPage())
 

@@ -130,11 +130,33 @@ export class SubtitleOverlay {
   }
 }
 
-/** 隐藏站点自带字幕（双语模式下避免两层字幕重叠） */
+/**
+ * 隐藏站点自带字幕，避免两层字幕重叠。
+ *
+ * 两种来源分开处理：
+ * - 原生 textTracks：mode 设为 'hidden'（仍加载 cues，但不显示）
+ * - DOM 字幕容器：加一个只改可见性的类，保留其 DOM 更新
+ *   （visibility:hidden 不影响站点继续写入文本，我们还能读到）
+ */
+const HIDE_CLASS = 'bilens-hide-native-caption'
+
 export function hideNativeCaptions(video: HTMLVideoElement, hide: boolean): void {
   for (const track of video.textTracks) {
-    if (hide) {
-      track.mode = 'hidden'
-    }
+    if (hide && track.mode === 'showing') track.mode = 'hidden'
+  }
+}
+
+/** 标记/取消标记 DOM 字幕容器（只改可见性，可随时还原） */
+export function markDomCaptionHidden(doc: Document, selector: string | null, hide: boolean): void {
+  if (!selector) return
+  let nodes: NodeListOf<Element>
+  try {
+    nodes = doc.querySelectorAll(selector)
+  } catch {
+    return
+  }
+  for (const node of nodes) {
+    if (!(node instanceof HTMLElement)) continue
+    node.classList.toggle(HIDE_CLASS, hide)
   }
 }

@@ -28,6 +28,13 @@ const videoEnabled = $<HTMLInputElement>('video-enabled')
 const videoBilingual = $<HTMLInputElement>('video-bilingual')
 const videoFontSize = $<HTMLInputElement>('video-font-size')
 const videoFontSizeValue = $<HTMLSpanElement>('video-font-size-value')
+const hoverEnabled = $<HTMLInputElement>('hover-enabled')
+const inputEnabled = $<HTMLInputElement>('input-enabled')
+const selectionEnabled = $<HTMLInputElement>('selection-enabled')
+const imageEnabled = $<HTMLInputElement>('image-enabled')
+const ocrLanguage = $<HTMLSelectElement>('ocr-language')
+const pdfMode = $<HTMLSelectElement>('pdf-mode')
+const siteRules = $<HTMLInputElement>('site-rules')
 
 let vendors: VendorPreset[] = []
 
@@ -67,6 +74,13 @@ async function init(): Promise<void> {
   videoBilingual.checked = config.videoSubtitleBilingual
   videoFontSize.value = String(config.videoSubtitleFontSize)
   videoFontSizeValue.textContent = `${config.videoSubtitleFontSize}px`
+  hoverEnabled.checked = config.enableHoverTranslate
+  inputEnabled.checked = config.enableInputTranslate
+  selectionEnabled.checked = config.enableSelectionTranslate
+  imageEnabled.checked = config.enableImageTranslate
+  ocrLanguage.value = config.ocrLanguage
+  pdfMode.value = config.pdfLayoutMode
+  siteRules.checked = config.enableSiteRules
 
   applyEngineVisibility()
   await refreshCacheInfo()
@@ -119,6 +133,13 @@ $('save').addEventListener('click', async () => {
   config.enableVideoSubtitle = videoEnabled.checked
   config.videoSubtitleBilingual = videoBilingual.checked
   config.videoSubtitleFontSize = Number(videoFontSize.value)
+  config.enableHoverTranslate = hoverEnabled.checked
+  config.enableInputTranslate = inputEnabled.checked
+  config.enableSelectionTranslate = selectionEnabled.checked
+  config.enableImageTranslate = imageEnabled.checked
+  config.ocrLanguage = ocrLanguage.value
+  config.pdfLayoutMode = pdfMode.value as 'bilingual' | 'translation-only'
+  config.enableSiteRules = siteRules.checked
   await saveConfig(config)
   statusEl.textContent = '✓ 已保存'
   window.setTimeout(() => {
