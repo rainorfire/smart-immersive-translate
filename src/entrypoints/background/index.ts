@@ -32,9 +32,30 @@ export default defineBackground(() => {
   })
 
   chrome.contextMenus?.onClicked.addListener((info, tab) => {
-    if (info.menuItemId !== 'bilens-translate-page' || !tab?.id) return
-    chrome.tabs.sendMessage(tab.id, { type: 'toggle-translate-page' }).catch(() => {})
+    if (!tab?.id) return
+    const map: Record<string, string> = {
+      'bilens-translate-page': 'toggle-translate-page',
+      'bilens-translation-only': 'toggle-translation-only',
+      'bilens-translate-input': 'translate-input-box',
+    }
+    const type = map[String(info.menuItemId)]
+    if (type) chrome.tabs.sendMessage(tab.id, { type }).catch(() => {})
   })
+
+  // 快捷键命令 → 转发给当前页面
+  if (chrome.commands) {
+    chrome.commands.onCommand.addListener(async (command) => {
+      const map: Record<string, string> = {
+        'toggle-translate-page': 'toggle-translate-page',
+        'toggle-translation-only': 'toggle-translation-only',
+        'translate-input-box': 'translate-input-box',
+      }
+      const type = map[command]
+      if (!type) return
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
+      if (tab?.id) chrome.tabs.sendMessage(tab.id, { type }).catch(() => {})
+    })
+  }
 
   // 配置变更时通知所有页面刷新译文
   onConfigChange(() => {
@@ -84,6 +105,16 @@ function setupContextMenus(): void {
       id: 'bilens-translate-page',
       title: 'BiLens：翻译/还原本页',
       contexts: ['page'],
+    })
+    chrome.contextMenus.create({
+      id: 'bilens-translation-only',
+      title: 'BiLens：切换仅译文模式',
+      contexts: ['page'],
+    })
+    chrome.contextMenus.create({
+      id: 'bilens-translate-input',
+      title: 'BiLens：翻译输入框',
+      contexts: ['editable'],
     })
   })
 }

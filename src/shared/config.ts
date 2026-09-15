@@ -19,6 +19,10 @@ export const DEFAULT_CONFIG: UserConfig = {
   excludeTags: ['SCRIPT', 'STYLE', 'NOSCRIPT', 'TEXTAREA', 'INPUT', 'CODE', 'PRE', 'KBD', 'SAMP', 'SVG', 'CANVAS', 'IFRAME'],
   enableSiteRules: true,
   enableCache: true,
+  theme: 'bilens-theme-underline',
+  enableHoverTranslate: true,
+  enableInputTranslate: true,
+  enableSelectionTranslate: true,
 }
 
 const STORAGE_KEY = 'bilens:config'

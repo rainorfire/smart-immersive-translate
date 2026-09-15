@@ -61,4 +61,12 @@ export interface UserConfig {
   enableSiteRules: boolean
   /** 缓存 */
   enableCache: boolean
+  /** 译文样式主题 */
+  theme: string
+  /** 悬停翻译：按下修饰键后自动翻译鼠标下段落 */
+  enableHoverTranslate: boolean
+  /** 输入框翻译开关 */
+  enableInputTranslate: boolean
+  /** 划词翻译开关 */
+  enableSelectionTranslate: boolean
 }

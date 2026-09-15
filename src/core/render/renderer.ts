@@ -21,6 +21,28 @@ export const CLS = {
   text: 'bilens-text',
 } as const
 
+/** 全部可用主题（对标官方 18 种） */
+export const THEMES = [
+  { id: 'bilens-theme-underline', label: '下划线' },
+  { id: 'bilens-theme-native-underline', label: '原始下划线' },
+  { id: 'bilens-theme-dashed', label: '虚线' },
+  { id: 'bilens-theme-native-dashed', label: '原始虚线' },
+  { id: 'bilens-theme-dotted', label: '点线' },
+  { id: 'bilens-theme-native-dotted', label: '原始点线' },
+  { id: 'bilens-theme-wavy', label: '波浪线' },
+  { id: 'bilens-theme-thin-dashed', label: '细虚线' },
+  { id: 'bilens-theme-solid-border', label: '实线框' },
+  { id: 'bilens-theme-dashed-border', label: '虚线框' },
+  { id: 'bilens-theme-highlight', label: '高亮' },
+  { id: 'bilens-theme-marker', label: '荧光笔' },
+  { id: 'bilens-theme-grey', label: '灰色' },
+  { id: 'bilens-theme-opacity', label: '半透明' },
+  { id: 'bilens-theme-mask', label: '模糊遮罩' },
+  { id: 'bilens-theme-weakening', label: '弱化' },
+  { id: 'bilens-theme-bold', label: '加粗' },
+  { id: 'bilens-theme-italic', label: '斜体' },
+] as const
+
 /** 记录已插入的译文节点，便于还原 */
 const inserted = new WeakMap<Text, HTMLElement>()
 

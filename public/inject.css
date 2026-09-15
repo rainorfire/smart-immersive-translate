@@ -1,0 +1,163 @@
+/**
+ * 注入样式。
+ * 主题通过 CSS 变量驱动，切换主题零重排。
+ */
+
+:root {
+  --bilens-underline-color: #72ece9;
+  --bilens-highlight-bg: #ffff00;
+  --bilens-marker-bg: #fbda41;
+  --bilens-grey-color: #2f4f4f;
+  --bilens-target-color: inherit;
+  --bilens-font-scale: 1;
+  --bilens-border-color: #94a3b8;
+  --bilens-border-radius: 0;
+}
+
+.bilens-target-wrapper {
+  display: inline;
+}
+
+.bilens-target-wrapper.bilens-target-block {
+  display: block;
+}
+
+.bilens-target-inner {
+  color: var(--bilens-target-color);
+  font-size: calc(1em * var(--bilens-font-scale));
+}
+
+.bilens-loading {
+  opacity: 0.45;
+}
+
+.bilens-error {
+  color: #d9534f;
+  font-size: 0.85em;
+  user-select: none;
+}
+
+/* 仅译文模式：隐藏原文 */
+[data-bilens-original-hidden] > :not(.bilens-target-wrapper),
+[data-bilens-orig-hidden] {
+  display: none !important;
+}
+
+/* ---------- 主题 ---------- */
+
+.bilens-theme-underline .bilens-target-inner {
+  border-bottom: 1px solid var(--bilens-underline-color);
+}
+
+.bilens-theme-dashed .bilens-target-inner {
+  border-bottom: 1px dashed var(--bilens-underline-color);
+}
+
+.bilens-theme-dotted .bilens-target-inner {
+  border-bottom: 1px dotted var(--bilens-underline-color);
+}
+
+.bilens-theme-highlight .bilens-target-inner {
+  background-color: var(--bilens-highlight-bg);
+}
+
+.bilens-theme-marker .bilens-target-inner {
+  background-color: var(--bilens-marker-bg);
+}
+
+.bilens-theme-grey .bilens-target-inner {
+  color: var(--bilens-grey-color);
+}
+
+.bilens-theme-opacity .bilens-target-inner {
+  opacity: 0.7;
+}
+
+.bilens-theme-native-underline .bilens-target-inner {
+  border-bottom: 1px solid var(--bilens-underline-color);
+  text-decoration: none;
+}
+
+.bilens-theme-native-dashed .bilens-target-inner {
+  border-bottom: 1px dashed var(--bilens-underline-color);
+}
+
+.bilens-theme-native-dotted .bilens-target-inner {
+  border-bottom: 1px dotted var(--bilens-underline-color);
+}
+
+.bilens-theme-wavy .bilens-target-inner {
+  text-decoration: underline wavy var(--bilens-underline-color);
+  text-underline-offset: 3px;
+}
+
+.bilens-theme-thin-dashed .bilens-target-inner {
+  border-bottom: 1px dashed #ff374f;
+}
+
+.bilens-theme-solid-border .bilens-target-inner {
+  padding: 0 4px;
+  border: 1px solid var(--bilens-border-color, #94a3b8);
+  border-radius: var(--bilens-border-radius, 0);
+}
+
+.bilens-theme-dashed-border .bilens-target-inner {
+  padding: 0 4px;
+  border: 1px dashed var(--bilens-border-color, #94a3b8);
+  border-radius: var(--bilens-border-radius, 0);
+}
+
+.bilens-theme-mask .bilens-target-inner {
+  filter: blur(0.35px);
+  opacity: 0.92;
+}
+
+.bilens-theme-weakening .bilens-target-inner {
+  opacity: 0.55;
+}
+
+.bilens-theme-bold .bilens-target-inner {
+  font-weight: 700;
+}
+
+.bilens-theme-italic .bilens-target-inner {
+  font-style: italic;
+}
+
+/* ---------- 划词气泡 ---------- */
+
+.bilens-selection-bubble {
+  max-width: 380px;
+  padding: 10px 12px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.16);
+  color: #1f2328;
+  font: 14px/1.6 -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+  z-index: 2147483647;
+}
+
+.bilens-selection-source {
+  margin-bottom: 6px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #eef0f2;
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.bilens-selection-target {
+  color: #1f2328;
+}
+
+/* 输入框翻译中状态 */
+[data-bilens-input-busy] {
+  background-image: linear-gradient(90deg, transparent 0%, rgba(47, 111, 237, 0.08) 50%, transparent 100%);
+  background-size: 200% 100%;
+  animation: bilens-input-pulse 1.2s linear infinite;
+}
+
+@keyframes bilens-input-pulse {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
