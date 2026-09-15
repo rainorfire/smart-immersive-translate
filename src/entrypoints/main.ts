@@ -6,6 +6,7 @@ import { collectRuleRoots, matchSiteRule } from '@/rules/sites/matcher'
 import { InputTranslator } from '@/features/input/input-translate'
 import { HoverTranslator } from '@/features/hover/hover-translate'
 import { SelectionTranslator } from '@/features/selection/selection-translate'
+import { mountFileDropZone } from '@/features/file/file-translate-ui'
 import type { TranslateOutcome } from '@/core/translate/translator'
 import type { UserConfig, TranslatableItem } from '@/shared/types'
 
@@ -75,6 +76,14 @@ export function runContentMain(): void {
     if (config.enableInputTranslate) detachers.push(inputTranslator.attach())
     if (config.enableHoverTranslate) detachers.push(hoverTranslator.attach())
     if (config.enableSelectionTranslate) detachers.push(selectionTranslator.attach())
+    // 文件翻译（EPUB / 字幕 / 文本）：拖入即翻译
+    detachers.push(
+      mountFileDropZone({
+        source: config.sourceLanguage,
+        target: config.targetLanguage,
+        bilingual: true,
+      }),
+    )
   }
 
   const revert = (): void => {

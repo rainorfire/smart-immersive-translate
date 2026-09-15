@@ -161,3 +161,38 @@
   from { background-position: 200% 0; }
   to { background-position: -200% 0; }
 }
+
+/* ---------- 字幕 / 文件翻译浮层 ---------- */
+
+.bilens-subtitle-overlay {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  width: 300px;
+  padding: 14px;
+  border-radius: 10px;
+  background: #1f2328;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.28);
+  color: #fff;
+  font: 13px/1.5 -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+  z-index: 2147483647;
+}
+
+.bilens-subtitle-label {
+  margin-bottom: 8px;
+}
+
+.bilens-subtitle-bar {
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.2);
+  overflow: hidden;
+}
+
+.bilens-subtitle-fill {
+  height: 100%;
+  width: 0;
+  border-radius: 2px;
+  background: #2f6fed;
+  transition: width 0.2s ease;
+}
