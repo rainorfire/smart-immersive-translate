@@ -1,0 +1,23 @@
+# 依赖与构建产物
+node_modules/
+.output/
+.wxt/
+dist/
+*.zip
+*.crx
+*.pem
+*.log
+.DS_Store
+
+# 环境与密钥
+.env
+.env.*
+!.env.example
+
+# 编辑器
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# 分析原料（独立归档在 ../reverse-immersive-translate/）
+reverse/

@@ -1,0 +1,64 @@
+/** 翻译方向与基础类型 */
+
+export interface LangPair {
+  source: string
+  target: string
+}
+
+/** 一条待翻译文本 */
+export interface TranslatableItem {
+  id: string
+  text: string
+}
+
+export interface TranslateRequest {
+  items: TranslatableItem[]
+  source: string
+  target: string
+}
+
+export interface TranslateResult {
+  /** key 为 item.id */
+  translations: Record<string, string>
+  /** 未成功翻译的 id -> 原因 */
+  failed: Record<string, string>
+}
+
+/** 译文插入位置 */
+export type TranslationPosition = 'before' | 'after'
+
+/** 双语 / 仅译文 */
+export type TranslationMode = 'dual' | 'translation-only'
+
+export interface EngineConfig {
+  /** provider id，如 bing / openai-compatible */
+  provider: string
+  /** openai-compatible 系厂商预设 id，如 deepseek */
+  vendor?: string
+  apiKey?: string
+  model?: string
+  baseUrl?: string
+  /** 温度、并发等可选覆盖 */
+  concurrency?: number
+  maxTextLengthPerRequest?: number
+  maxTextGroupLengthPerRequest?: number
+}
+
+export interface UserConfig {
+  /** 主翻译引擎 */
+  engine: EngineConfig
+  /** 目标语言 */
+  targetLanguage: string
+  /** 源语言，auto 为自动检测 */
+  sourceLanguage: string
+  mode: TranslationMode
+  position: TranslationPosition
+  /** 动态内容增量翻译 */
+  translateDynamicContent: boolean
+  /** 不翻译的标签 */
+  excludeTags: string[]
+  /** 站点规则开关 */
+  enableSiteRules: boolean
+  /** 缓存 */
+  enableCache: boolean
+}

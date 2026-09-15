@@ -1,0 +1,26 @@
+{
+  "name": "bilens",
+  "displayName": "BiLens",
+  "version": "0.1.0",
+  "description": "BiLens - 双语网页翻译扩展，支持多引擎与国内主流大模型",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.32.1",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "wxt",
+    "dev:firefox": "wxt -b firefox",
+    "build": "wxt build",
+    "build:firefox": "wxt build -b firefox",
+    "zip": "wxt zip",
+    "compile": "tsc --noEmit",
+    "postinstall": "wxt prepare"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.2.9",
+    "typescript": "^7.0.2",
+    "wxt": "^0.21.4"
+  }
+}

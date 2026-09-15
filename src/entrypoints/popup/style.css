@@ -1,0 +1,100 @@
+:root {
+  --c-bg: #ffffff;
+  --c-fg: #1f2328;
+  --c-muted: #6b7280;
+  --c-border: #e5e7eb;
+  --c-primary: #2f6fed;
+  --radius: 8px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  width: 320px;
+  margin: 0;
+  padding: 14px;
+  background: var(--c-bg);
+  color: var(--c-fg);
+  font: 13px/1.5 -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+}
+
+header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+h1 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.status {
+  color: var(--c-muted);
+  font-size: 12px;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+}
+
+label {
+  margin-top: 4px;
+  color: var(--c-muted);
+  font-size: 12px;
+}
+
+select,
+input {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--c-border);
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+button {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid var(--c-border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--c-fg);
+  cursor: pointer;
+  font-size: 13px;
+}
+
+button.primary {
+  border-color: var(--c-primary);
+  background: var(--c-primary);
+  color: #fff;
+}
+
+footer {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+  color: var(--c-muted);
+  font-size: 12px;
+}
+
+button.link {
+  flex: 0;
+  padding: 0;
+  border: none;
+  color: var(--c-primary);
+}

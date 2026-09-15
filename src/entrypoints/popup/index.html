@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>BiLens</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <header>
+      <h1>BiLens</h1>
+      <span id="status" class="status">就绪</span>
+    </header>
+
+    <section class="card">
+      <label for="engine">翻译引擎</label>
+      <select id="engine"></select>
+
+      <div id="vendor-row" hidden>
+        <label for="vendor">模型厂商</label>
+        <select id="vendor"></select>
+        <label for="model">模型</label>
+        <input id="model" type="text" placeholder="模型名" />
+        <label for="apiKey">API Key</label>
+        <input id="apiKey" type="password" placeholder="sk-..." />
+      </div>
+
+      <label for="target">目标语言</label>
+      <select id="target"></select>
+
+      <label for="mode">显示模式</label>
+      <select id="mode">
+        <option value="dual">双语对照</option>
+        <option value="translation-only">仅译文</option>
+      </select>
+    </section>
+
+    <section class="actions">
+      <button id="translate" class="primary">翻译本页 / 还原</button>
+      <button id="save">保存设置</button>
+    </section>
+
+    <footer>
+      <button id="open-options" class="link">更多设置</button>
+      <span id="cache-info"></span>
+    </footer>
+
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

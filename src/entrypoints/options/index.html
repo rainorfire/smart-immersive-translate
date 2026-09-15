@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>BiLens 设置</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main>
+      <h1>BiLens 设置</h1>
+
+      <section>
+        <h2>翻译引擎</h2>
+        <div class="field">
+          <label for="engine">引擎</label>
+          <select id="engine"></select>
+        </div>
+        <div class="field" id="vendor-field">
+          <label for="vendor">模型厂商</label>
+          <select id="vendor"></select>
+        </div>
+        <div class="field" id="model-field">
+          <label for="model">模型名</label>
+          <input id="model" type="text" />
+        </div>
+        <div class="field" id="baseurl-field">
+          <label for="baseUrl">Base URL</label>
+          <input id="baseUrl" type="text" />
+        </div>
+        <div class="field" id="apikey-field">
+          <label for="apiKey">API Key</label>
+          <input id="apiKey" type="password" placeholder="sk-..." />
+        </div>
+        <p class="hint" id="engine-hint"></p>
+      </section>
+
+      <section>
+        <h2>翻译行为</h2>
+        <div class="field">
+          <label for="target">目标语言</label>
+          <select id="target"></select>
+        </div>
+        <div class="field">
+          <label for="source">源语言</label>
+          <select id="source">
+            <option value="auto">自动检测</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="mode">显示模式</label>
+          <select id="mode">
+            <option value="dual">双语对照</option>
+            <option value="translation-only">仅译文</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="position">译文位置</label>
+          <select id="position">
+            <option value="after">原文之后</option>
+            <option value="before">原文之前</option>
+          </select>
+        </div>
+        <label class="check">
+          <input id="dynamic" type="checkbox" />
+          <span>翻译动态加载的内容（无限滚动、单页应用）</span>
+        </label>
+        <label class="check">
+          <input id="cache" type="checkbox" />
+          <span>启用译文缓存（减少重复请求）</span>
+        </label>
+      </section>
+
+      <section>
+        <h2>快捷键</h2>
+        <ul class="keys">
+          <li><kbd>Alt</kbd> + <kbd>A</kbd> 翻译 / 还原当前页</li>
+          <li><kbd>Alt</kbd> + <kbd>W</kbd> 切换仅译文模式</li>
+          <li><kbd>Alt</kbd> + <kbd>I</kbd> 翻译输入框</li>
+        </ul>
+        <button id="shortcut-settings" class="link">修改快捷键</button>
+      </section>
+
+      <section>
+        <h2>缓存</h2>
+        <p class="hint" id="cache-info">读取中…</p>
+        <button id="clear-cache">清空译文缓存</button>
+      </section>
+    </main>
+
+    <div class="savebar">
+      <span id="status"></span>
+      <button id="save" class="primary">保存</button>
+    </div>
+
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>
