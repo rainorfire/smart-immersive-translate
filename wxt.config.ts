@@ -39,6 +39,10 @@ export default defineConfig({
         suggested_key: { default: 'Alt+I', mac: 'Alt+I' },
         description: '翻译输入框',
       },
+      'toggle-video-subtitle': {
+        suggested_key: { default: 'Alt+S', mac: 'Alt+S' },
+        description: '翻译视频字幕',
+      },
     },
   },
 })

@@ -76,8 +76,27 @@
           <li><kbd>Alt</kbd> + <kbd>A</kbd> 翻译 / 还原当前页</li>
           <li><kbd>Alt</kbd> + <kbd>W</kbd> 切换仅译文模式</li>
           <li><kbd>Alt</kbd> + <kbd>I</kbd> 翻译输入框</li>
+          <li><kbd>Alt</kbd> + <kbd>S</kbd> 翻译视频字幕</li>
         </ul>
         <button id="shortcut-settings" class="link">修改快捷键</button>
+      </section>
+
+      <section>
+        <h2>视频字幕</h2>
+        <label class="check">
+          <input id="video-enabled" type="checkbox" />
+          <span>自动接入视频双语字幕（支持 YouTube、B站、Netflix 等）</span>
+        </label>
+        <label class="check">
+          <input id="video-bilingual" type="checkbox" />
+          <span>双语显示（关闭则仅显示译文）</span>
+        </label>
+        <div class="field">
+          <label for="video-font-size">字幕字号</label>
+          <input id="video-font-size" type="range" min="14" max="48" step="1" />
+          <span id="video-font-size-value" class="hint"></span>
+        </div>
+        <p class="hint">若页面没有字幕轨，需要先在播放器里打开站点自带字幕，再按 Alt+S。</p>
       </section>
 
       <section>

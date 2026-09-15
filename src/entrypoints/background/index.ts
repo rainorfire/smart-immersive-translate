@@ -53,6 +53,8 @@ export default defineBackground(() => {
       'bilens-translate-page': 'toggle-translate-page',
       'bilens-translation-only': 'toggle-translation-only',
       'bilens-translate-input': 'translate-input-box',
+      'bilens-video-subtitle': 'toggle-video-subtitle',
+      'bilens-translate-images': 'translate-images',
     }
     const type = map[String(info.menuItemId)]
     if (type) chrome.tabs.sendMessage(tab.id, { type }).catch(() => {})
@@ -65,6 +67,7 @@ export default defineBackground(() => {
         'toggle-translate-page': 'toggle-translate-page',
         'toggle-translation-only': 'toggle-translation-only',
         'translate-input-box': 'translate-input-box',
+        'toggle-video-subtitle': 'toggle-video-subtitle',
       }
       const type = map[command]
       if (!type) return
@@ -150,6 +153,16 @@ function setupContextMenus(): void {
       title: 'BiLens：用 PDF 翻译打开',
       contexts: ['link', 'page'],
       targetUrlPatterns: ['*://*/*.pdf', '*://*/*.pdf?*'],
+    })
+    chrome.contextMenus.create({
+      id: 'bilens-video-subtitle',
+      title: 'BiLens：翻译视频字幕',
+      contexts: ['video', 'page'],
+    })
+    chrome.contextMenus.create({
+      id: 'bilens-translate-images',
+      title: 'BiLens：翻译本页图片',
+      contexts: ['page'],
     })
   })
 }

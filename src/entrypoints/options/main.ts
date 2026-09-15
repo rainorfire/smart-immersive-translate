@@ -24,6 +24,10 @@ const dynamicCheck = $<HTMLInputElement>('dynamic')
 const cacheCheck = $<HTMLInputElement>('cache')
 const cacheInfo = $<HTMLParagraphElement>('cache-info')
 const statusEl = $<HTMLSpanElement>('status')
+const videoEnabled = $<HTMLInputElement>('video-enabled')
+const videoBilingual = $<HTMLInputElement>('video-bilingual')
+const videoFontSize = $<HTMLInputElement>('video-font-size')
+const videoFontSizeValue = $<HTMLSpanElement>('video-font-size-value')
 
 let vendors: VendorPreset[] = []
 
@@ -59,6 +63,10 @@ async function init(): Promise<void> {
   positionSelect.value = config.position
   dynamicCheck.checked = config.translateDynamicContent
   cacheCheck.checked = config.enableCache
+  videoEnabled.checked = config.enableVideoSubtitle
+  videoBilingual.checked = config.videoSubtitleBilingual
+  videoFontSize.value = String(config.videoSubtitleFontSize)
+  videoFontSizeValue.textContent = `${config.videoSubtitleFontSize}px`
 
   applyEngineVisibility()
   await refreshCacheInfo()
@@ -108,6 +116,9 @@ $('save').addEventListener('click', async () => {
   config.position = positionSelect.value as TranslationPosition
   config.translateDynamicContent = dynamicCheck.checked
   config.enableCache = cacheCheck.checked
+  config.enableVideoSubtitle = videoEnabled.checked
+  config.videoSubtitleBilingual = videoBilingual.checked
+  config.videoSubtitleFontSize = Number(videoFontSize.value)
   await saveConfig(config)
   statusEl.textContent = '✓ 已保存'
   window.setTimeout(() => {
@@ -123,6 +134,10 @@ $('clear-cache').addEventListener('click', async () => {
 
 $('shortcut-settings').addEventListener('click', () => {
   chrome.tabs.create({ url: 'chrome://extensions/shortcuts' })
+})
+
+videoFontSize.addEventListener('input', () => {
+  videoFontSizeValue.textContent = `${videoFontSize.value}px`
 })
 
 async function refreshCacheInfo(): Promise<void> {

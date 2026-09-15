@@ -73,4 +73,12 @@ export interface UserConfig {
   enableImageTranslate: boolean
   /** OCR 识别语言 */
   ocrLanguage: string
+  /** 视频双语字幕开关 */
+  enableVideoSubtitle: boolean
+  /** 字幕是否双语（false 为仅译文） */
+  videoSubtitleBilingual: boolean
+  /** 字幕字号（px） */
+  videoSubtitleFontSize: number
+  /** PDF 译文显示模式 */
+  pdfLayoutMode: 'bilingual' | 'translation-only'
 }

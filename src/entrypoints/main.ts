@@ -8,6 +8,7 @@ import { HoverTranslator } from '@/features/hover/hover-translate'
 import { SelectionTranslator } from '@/features/selection/selection-translate'
 import { mountFileDropZone } from '@/features/file/file-translate-ui'
 import { ImageTranslator } from '@/features/image/image-translate'
+import { VideoSubtitleController } from '@/features/video/video-subtitle'
 import type { TranslateOutcome } from '@/core/translate/translator'
 import type { UserConfig, TranslatableItem } from '@/shared/types'
 
@@ -34,6 +35,7 @@ export function runContentMain(): void {
   const hoverTranslator = new HoverTranslator()
   const selectionTranslator = new SelectionTranslator()
   const imageTranslator = new ImageTranslator()
+  const videoController = new VideoSubtitleController()
 
   const run = async (): Promise<void> => {
     if (translating) return
@@ -72,6 +74,12 @@ export function runContentMain(): void {
         target: config.targetLanguage,
         ocrLang: config.ocrLanguage,
       })
+      videoController.update({
+        source: config.sourceLanguage,
+        target: config.targetLanguage,
+        bilingual: config.videoSubtitleBilingual,
+        fontSize: config.videoSubtitleFontSize,
+      })
       return
     }
 
@@ -83,6 +91,12 @@ export function runContentMain(): void {
       source: config.sourceLanguage,
       target: config.targetLanguage,
       ocrLang: config.ocrLanguage,
+    })
+    videoController.update({
+      source: config.sourceLanguage,
+      target: config.targetLanguage,
+      bilingual: config.videoSubtitleBilingual,
+      fontSize: config.videoSubtitleFontSize,
     })
 
     if (config.enableInputTranslate) detachers.push(inputTranslator.attach())
@@ -98,12 +112,35 @@ export function runContentMain(): void {
     )
     // 图片翻译：Alt + 点击图片
     detachers.push(imageTranslator.attach())
+    // 视频双语字幕：页面有 video 时自动接入
+    if (config.enableVideoSubtitle) maybeAttachVideoSubtitle()
   }
 
   const revert = (): void => {
     stopObserver()
     revertAll(document)
+    videoController.stop()
     translated = false
+  }
+
+  /**
+   * 视频字幕：页面有 <video> 时才挂载。
+   * 首次可能还没加载出播放器（SPA 异步渲染），用短期轮询兜底。
+   */
+  function maybeAttachVideoSubtitle(attempt = 0): void {
+    if (!currentConfig?.enableVideoSubtitle) return
+    const video = document.querySelector('video')
+    if (video) {
+      void videoController.start(document).then((state) => {
+        if (!state.active && attempt < 5) {
+          window.setTimeout(() => maybeAttachVideoSubtitle(attempt + 1), 2000)
+        }
+      })
+      return
+    }
+    if (attempt < 10) {
+      window.setTimeout(() => maybeAttachVideoSubtitle(attempt + 1), 1500)
+    }
   }
 
   const startObserver = (config: UserConfig): void => {
@@ -146,6 +183,10 @@ export function runContentMain(): void {
       void inputTranslator.translateFocused()
     } else if (msg.type === 'translate-images') {
       void imageTranslator.translateAll()
+    } else if (msg.type === 'toggle-video-subtitle') {
+      void toggleVideoSubtitle()
+    } else if (msg.type === 'translate-video-subtitles-all') {
+      void videoController.translateAll()
     } else if (msg.type === 'config-changed') {
       if (translated) {
         revert()
@@ -160,6 +201,15 @@ export function runContentMain(): void {
     const next = currentConfig.mode === 'dual' ? 'translation-only' : 'dual'
     currentConfig.mode = next
     document.documentElement.toggleAttribute('data-bilens-translation-only', next === 'translation-only')
+  }
+
+  /** 视频字幕开关 */
+  async function toggleVideoSubtitle(): Promise<void> {
+    if (videoController.isActive) {
+      videoController.stop()
+      return
+    }
+    await videoController.start(document)
   }
 
   // ---- iframe 可见性协商：回应子 frame 的探询 ----

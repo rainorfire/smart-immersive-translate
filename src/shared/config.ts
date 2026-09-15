@@ -25,6 +25,10 @@ export const DEFAULT_CONFIG: UserConfig = {
   enableSelectionTranslate: true,
   enableImageTranslate: true,
   ocrLanguage: 'eng',
+  enableVideoSubtitle: true,
+  videoSubtitleBilingual: true,
+  videoSubtitleFontSize: 26,
+  pdfLayoutMode: 'bilingual',
 }
 
 const STORAGE_KEY = 'bilens:config'

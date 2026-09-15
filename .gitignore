@@ -21,3 +21,6 @@ dist/
 
 # 分析原料（独立归档在 ../reverse-immersive-translate/）
 reverse/
+
+# 临时验证脚本（esbuild 转译后的断言脚本）
+.scratch/
