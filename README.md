@@ -36,11 +36,13 @@ public/          inject.css | tesseract/ | pdf/
 - 脚手架：`WXT 0.21.4`（Vite 内核，MV3 + 多浏览器）
 - 引擎层：自研 Provider 适配层，OpenAI 兼容协议为一等公民
 - 缓存：`chrome.storage.local` + 内存 LRU，键 `sha256(text+sl+tl+engine)`
-- OCR：`tesseract.js 7.0.0`（跑 offscreen document）
+- OCR：`tesseract.js 7.0.0`（跑 offscreen document，识别资源本地化）
 - PDF：`pdfjs-dist 6.3.289`
-- EPUB：`epubjs 0.3.93`
-- 正文抽取：`@mozilla/readability 0.6.0`
-- 安全：`dompurify 3.4.15`
+- EPUB：`epubjs 0.3.93`（解包/重打包另用 `jszip 3.10.2`）
+- UI：原生 TS + CSS 变量，不引框架
+
+**安全说明**：译文一律经 `textContent` 写入 DOM，不解析 HTML，
+从根上避免注入类问题（比「先插入再净化」更彻底）。
 
 ## 四、功能清单（16 项，全部已实现）
 

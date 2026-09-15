@@ -18,9 +18,7 @@ export default defineConfig({
         resources: [
           'main.js',
           'inject.css',
-          'pdf/index.html',
           'tesseract/*',
-          'ort/*',
           'offscreen.html',
         ],
         matches: ['<all_urls>'],
