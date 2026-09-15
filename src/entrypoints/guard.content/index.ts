@@ -13,6 +13,9 @@ export default defineContentScript({
   allFrames: true,
   matchAboutBlank: true,
   main() {
+    // PDF 文件：交由内置查看器处理，页面脚本不介入
+    if (location.pathname.toLowerCase().endsWith('.pdf')) return
+
     // 子 frame：先向父 frame 探询可见性，父 frame 不响应则超时兜底放行
     if (window !== window.top) {
       let settled = false

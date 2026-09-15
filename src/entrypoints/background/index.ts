@@ -32,8 +32,23 @@ export default defineBackground(() => {
     setupContextMenus()
   })
 
+  // 点击 PDF 链接时，引导到扩展内置的 PDF 翻译查看器
+  if (chrome.webNavigation) {
+    // webNavigation 是可选权限，未授权时静默跳过
+  }
+
   chrome.contextMenus?.onClicked.addListener((info, tab) => {
     if (!tab?.id) return
+    // PDF 场景：在当前标签打开翻译查看器
+    if (info.menuItemId === 'bilens-translate-pdf') {
+      const target = info.linkUrl || tab.url
+      if (target) {
+        chrome.tabs.create({
+          url: chrome.runtime.getURL(`/pdf.html?file=${encodeURIComponent(target)}`),
+        })
+      }
+      return
+    }
     const map: Record<string, string> = {
       'bilens-translate-page': 'toggle-translate-page',
       'bilens-translation-only': 'toggle-translation-only',
@@ -129,6 +144,12 @@ function setupContextMenus(): void {
       id: 'bilens-translate-input',
       title: 'BiLens：翻译输入框',
       contexts: ['editable'],
+    })
+    chrome.contextMenus.create({
+      id: 'bilens-translate-pdf',
+      title: 'BiLens：用 PDF 翻译打开',
+      contexts: ['link', 'page'],
+      targetUrlPatterns: ['*://*/*.pdf', '*://*/*.pdf?*'],
     })
   })
 }
