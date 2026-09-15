@@ -21,6 +21,7 @@ export default defineConfig({
           'pdf/index.html',
           'tesseract/*',
           'ort/*',
+          'offscreen.html',
         ],
         matches: ['<all_urls>'],
       },

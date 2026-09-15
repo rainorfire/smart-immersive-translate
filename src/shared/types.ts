@@ -69,4 +69,8 @@ export interface UserConfig {
   enableInputTranslate: boolean
   /** 划词翻译开关 */
   enableSelectionTranslate: boolean
+  /** 图片翻译开关 */
+  enableImageTranslate: boolean
+  /** OCR 识别语言 */
+  ocrLanguage: string
 }

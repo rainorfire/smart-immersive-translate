@@ -196,3 +196,30 @@
   background: #2f6fed;
   transition: width 0.2s ease;
 }
+
+/* ---------- 图片翻译浮层 ---------- */
+
+.bilens-image-overlay {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  max-height: 60%;
+  overflow: auto;
+  padding: 8px 10px;
+  background: rgba(31, 35, 40, 0.88);
+  color: #fff;
+  font: 13px/1.5 -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+  white-space: pre-wrap;
+  pointer-events: none;
+  z-index: 2147483000;
+}
+
+.bilens-image-overlay-hover {
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+*:hover > .bilens-image-overlay-hover {
+  opacity: 1;
+}

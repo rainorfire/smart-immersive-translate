@@ -7,6 +7,7 @@ import { InputTranslator } from '@/features/input/input-translate'
 import { HoverTranslator } from '@/features/hover/hover-translate'
 import { SelectionTranslator } from '@/features/selection/selection-translate'
 import { mountFileDropZone } from '@/features/file/file-translate-ui'
+import { ImageTranslator } from '@/features/image/image-translate'
 import type { TranslateOutcome } from '@/core/translate/translator'
 import type { UserConfig, TranslatableItem } from '@/shared/types'
 
@@ -32,6 +33,7 @@ export function runContentMain(): void {
   const inputTranslator = new InputTranslator()
   const hoverTranslator = new HoverTranslator()
   const selectionTranslator = new SelectionTranslator()
+  const imageTranslator = new ImageTranslator()
 
   const run = async (): Promise<void> => {
     if (translating) return
@@ -65,6 +67,11 @@ export function runContentMain(): void {
         source: config.sourceLanguage,
         target: config.targetLanguage,
       })
+      imageTranslator.update({
+        source: config.sourceLanguage,
+        target: config.targetLanguage,
+        ocrLang: config.ocrLanguage,
+      })
       return
     }
 
@@ -72,6 +79,11 @@ export function runContentMain(): void {
     hoverTranslator.update({ source: config.sourceLanguage, target: config.targetLanguage })
     hoverTranslator.setTheme(config.theme)
     selectionTranslator.update({ source: config.sourceLanguage, target: config.targetLanguage })
+    imageTranslator.update({
+      source: config.sourceLanguage,
+      target: config.targetLanguage,
+      ocrLang: config.ocrLanguage,
+    })
 
     if (config.enableInputTranslate) detachers.push(inputTranslator.attach())
     if (config.enableHoverTranslate) detachers.push(hoverTranslator.attach())
@@ -84,6 +96,8 @@ export function runContentMain(): void {
         bilingual: true,
       }),
     )
+    // 图片翻译：Alt + 点击图片
+    detachers.push(imageTranslator.attach())
   }
 
   const revert = (): void => {
@@ -130,6 +144,8 @@ export function runContentMain(): void {
       void toggleMode()
     } else if (msg.type === 'translate-input-box') {
       void inputTranslator.translateFocused()
+    } else if (msg.type === 'translate-images') {
+      void imageTranslator.translateAll()
     } else if (msg.type === 'config-changed') {
       if (translated) {
         revert()

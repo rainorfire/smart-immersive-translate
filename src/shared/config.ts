@@ -23,6 +23,8 @@ export const DEFAULT_CONFIG: UserConfig = {
   enableHoverTranslate: true,
   enableInputTranslate: true,
   enableSelectionTranslate: true,
+  enableImageTranslate: true,
+  ocrLanguage: 'eng',
 }
 
 const STORAGE_KEY = 'bilens:config'

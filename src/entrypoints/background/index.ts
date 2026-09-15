@@ -3,6 +3,7 @@ import { translateItems } from '@/core/translate/translator'
 import { clearCache, getCacheStats } from '@/core/translate/cache'
 import { listProviders } from '@/core/engine/registry'
 import { VENDOR_PRESETS } from '@/core/engine/vendors'
+import { maybeCloseOffscreen, requestOcr, warmupOcr } from '@/core/offscreen/manager'
 import type { EngineConfig, TranslatableItem } from '@/shared/types'
 
 /**
@@ -81,9 +82,22 @@ async function handleMessage(message: unknown): Promise<unknown> {
     case 'clear-cache':
       await clearCache()
       return { ok: true }
+    case 'ocr':
+      return handleOcr(message as { imageUrl?: string; lang?: string })
+    case 'ocr-warmup':
+      await warmupOcr((message as { lang?: string }).lang ?? 'eng')
+      return { ok: true }
     default:
       return { error: `未知消息类型：${msg.type}` }
   }
+}
+
+async function handleOcr(msg: { imageUrl?: string; lang?: string }) {
+  if (!msg.imageUrl) return { text: '', error: '缺少图片数据' }
+  const result = await requestOcr(msg.imageUrl, msg.lang ?? 'eng')
+  // 每次 OCR 后评估是否可回收离屏文档
+  setTimeout(() => void maybeCloseOffscreen(), 1000)
+  return result
 }
 
 async function handleTranslate(msg: TranslateMessage) {
