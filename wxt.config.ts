@@ -5,11 +5,26 @@ export default defineConfig({
   modules: [],
   manifestVersion: 3,
   manifest: {
-    name: 'BiLens - 双语网页翻译',
-    short_name: 'BiLens',
-    description:
-      '双语对照网页翻译扩展，支持整页/输入框/悬停翻译，可接入 DeepSeek、Kimi、通义、智谱等主流大模型与免费引擎。',
+    // 文案走 _locales（已声明 default_locale，必须配套 _locales 目录，
+    // 否则 Chrome 直接拒绝加载）
+    name: '__MSG_extName__',
+    short_name: '__MSG_extShortName__',
+    description: '__MSG_extDescription__',
     default_locale: 'zh_CN',
+    icons: {
+      16: 'icon/16.png',
+      32: 'icon/32.png',
+      48: 'icon/48.png',
+      128: 'icon/128.png',
+    },
+    action: {
+      default_icon: {
+        16: 'icon/16.png',
+        32: 'icon/32.png',
+        48: 'icon/48.png',
+        128: 'icon/128.png',
+      },
+    },
     permissions: ['storage', 'activeTab', 'contextMenus', 'offscreen', 'scripting'],
     host_permissions: ['<all_urls>'],
     web_accessible_resources: [

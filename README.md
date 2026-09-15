@@ -80,15 +80,32 @@ pnpm install
 npx wxt prepare
 npx tsc --noEmit     # 类型检查
 npx wxt build        # 构建到 .output/chrome-mv3
+npx wxt zip          # 打包成可安装的 zip（.output/bilens-<ver>-chrome.zip）
 npx wxt dev          # 开发模式
 ```
 
 装载：`chrome://extensions` → 开发者模式 → 加载已解压的扩展 → 选 `.output/chrome-mv3`
 
-## 七、不做的部分
+图标重绘：`python3 scripts/make_icons.py`（纯代码生成，不依赖外部素材）
+
+## 七、打包分发
+
+```bash
+npx wxt zip
+```
+
+产物：`.output/bilens-<version>-chrome.zip`（约 7.5 MB）。
+
+**上架前必查两件事**（都已通过 Chrome 官方 `--pack-extension` 校验）：
+
+1. `manifest.json` 必须在 zip **根目录**，不能套一层文件夹
+2. 声明了 `default_locale` 就**必须**有对应的 `_locales/<locale>/messages.json`，
+   否则 Chrome 报 `_locales subtree is missing` 并拒绝加载
+
+## 八、不做的部分
 
 BabelDOC 级保留排版 PDF、云端 AI 网关、会员订阅体系、本地 AI 防火墙（PII 脱敏）。
 
-## 八、分析结论索引
+## 九、分析结论索引
 
 架构与交互的调研结论统一存放在 `../reverse-immersive-translate/docs/analysis/`。

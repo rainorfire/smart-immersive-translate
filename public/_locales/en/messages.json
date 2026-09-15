@@ -1,0 +1,14 @@
+{
+  "extName": {
+    "message": "BiLens - Bilingual Web Translator",
+    "description": "Extension name"
+  },
+  "extShortName": {
+    "message": "BiLens",
+    "description": "Short name"
+  },
+  "extDescription": {
+    "message": "Bilingual web translation with full-page, input-box, hover and selection modes. Also translates EPUB, subtitles, images, PDF and video subtitles. Works with major LLM providers and free engines.",
+    "description": "Extension description"
+  }
+}

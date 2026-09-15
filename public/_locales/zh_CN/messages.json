@@ -1,0 +1,14 @@
+{
+  "extName": {
+    "message": "BiLens - 双语网页翻译",
+    "description": "扩展名称"
+  },
+  "extShortName": {
+    "message": "BiLens",
+    "description": "扩展简称"
+  },
+  "extDescription": {
+    "message": "双语对照网页翻译。支持整页、输入框、悬停、划词翻译，EPUB、字幕、图片、PDF 与视频双语字幕，可接入 DeepSeek、Kimi、通义、智谱等主流大模型与免费引擎。",
+    "description": "扩展描述"
+  }
+}
