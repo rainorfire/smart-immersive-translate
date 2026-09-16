@@ -1,5 +1,6 @@
 import { loadConfig, saveConfig } from '@/shared/config'
 import { TARGET_LANGUAGES } from '@/shared/languages'
+import { THEMES } from '@/core/render/renderer'
 import type { VendorPreset } from '@/core/engine/vendors'
 import type { TranslateProvider } from '@/core/engine/provider'
 import type { TranslationMode, TranslationPosition } from '@/shared/types'
@@ -20,6 +21,7 @@ const targetSelect = $<HTMLSelectElement>('target')
 const sourceSelect = $<HTMLSelectElement>('source')
 const modeSelect = $<HTMLSelectElement>('mode')
 const positionSelect = $<HTMLSelectElement>('position')
+const themeSelect = $<HTMLSelectElement>('theme')
 const dynamicCheck = $<HTMLInputElement>('dynamic')
 const cacheCheck = $<HTMLInputElement>('cache')
 const cacheInfo = $<HTMLParagraphElement>('cache-info')
@@ -58,6 +60,9 @@ async function init(): Promise<void> {
   sourceSelect.innerHTML += TARGET_LANGUAGES.map(
     (l) => `<option value="${l.code}">${l.label}</option>`,
   ).join('')
+  themeSelect.innerHTML = THEMES.map(
+    (t) => `<option value="${t.id}">${t.label}</option>`,
+  ).join('')
 
   engineSelect.value = config.engine.provider
   vendorSelect.value = config.engine.vendor ?? 'deepseek'
@@ -68,6 +73,7 @@ async function init(): Promise<void> {
   sourceSelect.value = config.sourceLanguage
   modeSelect.value = config.mode
   positionSelect.value = config.position
+  themeSelect.value = config.theme
   dynamicCheck.checked = config.translateDynamicContent
   cacheCheck.checked = config.enableCache
   videoEnabled.checked = config.enableVideoSubtitle
@@ -128,6 +134,7 @@ $('save').addEventListener('click', async () => {
   config.sourceLanguage = sourceSelect.value
   config.mode = modeSelect.value as TranslationMode
   config.position = positionSelect.value as TranslationPosition
+  config.theme = themeSelect.value
   config.translateDynamicContent = dynamicCheck.checked
   config.enableCache = cacheCheck.checked
   config.enableVideoSubtitle = videoEnabled.checked

@@ -1,6 +1,15 @@
 import { loadConfig } from '@/shared/config'
-import { collectTextNodes, type CollectedNode } from '@/core/dom/walker'
-import { renderError, renderLoading, renderTranslation, revertAll } from '@/core/render/renderer'
+import { collectTextBlocks } from '@/core/dom/walker'
+import {
+  hasRendered,
+  renderError,
+  renderLoading,
+  renderTranslation,
+  revertAll,
+  setTranslationOnly,
+  pruneDetached,
+  targetOf,
+} from '@/core/render/renderer'
 import { shouldTranslateFrame } from '@/core/dom/guard'
 import { collectRuleRoots, matchSiteRule } from '@/rules/sites/matcher'
 import { InputTranslator } from '@/features/input/input-translate'
@@ -11,6 +20,7 @@ import { ImageTranslator } from '@/features/image/image-translate'
 import { VideoSubtitleController } from '@/features/video/video-subtitle'
 import type { TranslateOutcome } from '@/core/translate/translator'
 import type { UserConfig, TranslatableItem } from '@/shared/types'
+import type { RenderTarget } from '@/core/render/renderer'
 
 /**
  * 内容主体。
@@ -145,6 +155,7 @@ export function runContentMain(): void {
 
   const startObserver = (config: UserConfig): void => {
     if (observer) return
+    if (!document.body) return
     let timer: number | null = null
     const pending = new Set<Element>()
 
@@ -200,7 +211,8 @@ export function runContentMain(): void {
     if (!currentConfig) return
     const next = currentConfig.mode === 'dual' ? 'translation-only' : 'dual'
     currentConfig.mode = next
-    document.documentElement.toggleAttribute('data-bilens-translation-only', next === 'translation-only')
+    // 真正隐藏/恢复原文。旧实现只设了个属性，而 CSS 里没有对应规则，等于空转。
+    setTranslationOnly(next === 'translation-only')
   }
 
   /** 视频字幕开关 */
@@ -269,17 +281,36 @@ function injectStyles(): void {
 }
 
 export async function translateRoots(roots: Element[], config: UserConfig): Promise<void> {
-  const collected: CollectedNode[] = []
+  const targets: RenderTarget[] = []
+  const items: TranslatableItem[] = []
+  // 顺带回收已脱离 DOM 的陈旧登记，避免无限滚动页面内存只增不减
+  pruneDetached()
+  // 同一段落可能被多个规则根重复覆盖；且每个 root 的抽取计数都从 n1 重新开始，
+  // 直接拼接会导致 id 大面积重复（维基百科实测 3306 个节点仅 35 个唯一 id），
+  // 下游 byId 映射会互相覆盖，绝大多数节点永远停在加载态。
+  //
+  // 这里以「段首节点」为唯一键：既去重，又给每段一个稳定 id。
+  const seen = new Map<Text, RenderTarget>()
   for (const root of roots) {
     if (!root.isConnected) continue
     if (root.closest?.('.bilens-target-wrapper')) continue
-    collected.push(...collectTextNodes(root, { excludeTags: config.excludeTags }))
+    for (const block of collectTextBlocks(root, { excludeTags: config.excludeTags })) {
+      const target = targetOf(block)
+      const key = block.nodes[0]
+      if (!key) continue
+      if (seen.has(key)) continue
+      // 已翻译过的段落不再重复请求（增量翻译反复触发时尤其重要）
+      if (hasRendered(target)) continue
+      seen.set(key, target)
+      block.item.id = `n${seen.size}`
+      targets.push(target)
+      items.push(block.item)
+    }
   }
-  if (collected.length === 0) return
+  if (targets.length === 0) return
 
-  for (const target of collected) renderLoading(target)
+  for (const target of targets) renderLoading(target)
 
-  const items: TranslatableItem[] = collected.map((c) => c.item)
   let outcome: TranslateOutcome | undefined
   try {
     outcome = (await chrome.runtime.sendMessage({
@@ -293,11 +324,11 @@ export async function translateRoots(roots: Element[], config: UserConfig): Prom
   }
 
   if (!outcome) {
-    for (const target of collected) renderError(target, '翻译服务无响应')
+    for (const target of targets) renderError(target, '翻译服务无响应')
     return
   }
 
-  const byId = new Map(collected.map((c) => [c.item.id, c]))
+  const byId = new Map(items.map((item, i) => [item.id, targets[i] as RenderTarget]))
   const renderOptions = { mode: config.mode, position: config.position, theme: config.theme }
 
   for (const [id, text] of Object.entries(outcome.translations)) {

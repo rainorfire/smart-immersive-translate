@@ -16,6 +16,14 @@
 
 .bilens-target-wrapper {
   display: inline;
+  /* 站点可能给 font 设了 family/size/color，这里显式继承原文，
+     让「译文样式与原文保持一致」不被站点规则破坏 */
+  font: inherit;
+  color: inherit;
+  letter-spacing: inherit;
+  line-height: inherit;
+  text-align: inherit;
+  font-feature-settings: normal;
 }
 
 .bilens-target-wrapper.bilens-target-block {
@@ -25,6 +33,20 @@
 .bilens-target-inner {
   color: var(--bilens-target-color);
   font-size: calc(1em * var(--bilens-font-scale));
+  font-family: inherit;
+  font-style: inherit;
+  font-weight: inherit;
+  letter-spacing: inherit;
+  line-height: inherit;
+}
+
+/*
+ * 链接**不加样式覆盖**：译文里的 <a> 是真实的 a 元素，且仍在原容器内，
+ * 站点的 `a{...}` / `.content a{...}` 规则会自然命中，颜色与下划线自动一致。
+ * 若这里写 color:inherit 反而会把站点的链接色盖成正文色（实测踩过）。
+ */
+.bilens-target-wrapper a {
+  cursor: pointer;
 }
 
 .bilens-loading {
@@ -37,9 +59,8 @@
   user-select: none;
 }
 
-/* 仅译文模式：隐藏原文 */
-[data-bilens-original-hidden] > :not(.bilens-target-wrapper),
-[data-bilens-orig-hidden] {
+/* 仅译文模式：隐藏被包裹的原文文本（包裹层可逆还原） */
+.bilens-orig {
   display: none !important;
 }
 

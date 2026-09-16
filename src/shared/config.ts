@@ -19,7 +19,9 @@ export const DEFAULT_CONFIG: UserConfig = {
   excludeTags: ['SCRIPT', 'STYLE', 'NOSCRIPT', 'TEXTAREA', 'INPUT', 'CODE', 'PRE', 'KBD', 'SAMP', 'SVG', 'CANVAS', 'IFRAME'],
   enableSiteRules: true,
   enableCache: true,
-  theme: 'bilens-theme-underline',
+  // 段落级对照下，无装饰最接近「像原文一样自然」的观感；
+  // 下划线降级为可选主题
+  theme: 'bilens-theme-none',
   enableHoverTranslate: true,
   enableInputTranslate: true,
   enableSelectionTranslate: true,

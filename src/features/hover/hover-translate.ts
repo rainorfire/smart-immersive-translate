@@ -1,6 +1,7 @@
 import { collectTextNodes } from '@/core/dom/walker'
 import { renderTranslation } from '@/core/render/renderer'
 import type { TranslateOutcome } from '@/core/translate/translator'
+import { segmentToRich } from '@/core/translate/rich'
 
 /**
  * 鼠标悬停翻译。
@@ -105,6 +106,16 @@ export class HoverTranslator {
     const collected = collectTextNodes(block, { minLength: 2 })
     if (collected.length === 0) return
 
+    // 悬停翻译同样保留行内元素：每段拼成富文本，译文里链接照样可点
+    const richById = new Map<string, ReturnType<typeof segmentToRich>>()
+    for (const c of collected) {
+      richById.set(c.item.id, segmentToRich(block, [c.node]))
+    }
+    for (const c of collected) {
+      const rich = richById.get(c.item.id)
+      if (rich && rich.rich.length > 0) c.item.text = rich.rich
+    }
+
     try {
       const outcome = (await chrome.runtime.sendMessage({
         type: 'translate',
@@ -118,11 +129,16 @@ export class HoverTranslator {
       for (const [id, text] of Object.entries(outcome.translations)) {
         const target = byId.get(id)
         if (target) {
-          renderTranslation(target, text, {
-            mode: 'dual',
-            position: 'after',
-            theme: this.theme,
-          })
+          // 悬停仍是节点级粒度：单节点即一个「段落」
+          renderTranslation(
+            {
+              nodes: [target.node],
+              anchor: target.node,
+              specs: richById.get(id)?.specs,
+            },
+            text,
+            { mode: 'dual', position: 'after', theme: this.theme },
+          )
         }
       }
     } catch {
