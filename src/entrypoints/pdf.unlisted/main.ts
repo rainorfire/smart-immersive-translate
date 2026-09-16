@@ -47,8 +47,26 @@ async function init(): Promise<void> {
   const fileUrl = params.get('file')
   if (fileUrl) {
     await loadFromUrl(fileUrl)
+    // 由链接/右键/按钮进来的都是「我要翻译这个 PDF」，载入完直接开译，
+    // 省掉一次点击；翻译过程中「中止」按钮始终可用（已译页面保留）。
+    if (viewer.totalPages > 0) void translateAllPages()
   } else {
     mountDropZone()
+  }
+}
+
+/** 全文翻译（工具栏按钮与自动开译共用同一条路径） */
+async function translateAllPages(): Promise<void> {
+  if (translatingAll || viewer.totalPages === 0) return
+  translatingAll = true
+  stopBtn.hidden = false
+  try {
+    await viewer.translateAll((page, total) => {
+      statusEl.textContent = `翻译中 ${page}/${total}…`
+    })
+  } finally {
+    translatingAll = false
+    stopBtn.hidden = true
   }
 }
 
@@ -195,18 +213,8 @@ function bindControls(): void {
     statusEl.textContent = `第 ${visiblePage} 页完成`
   })
 
-  $('translate-all').addEventListener('click', async () => {
-    if (translatingAll || viewer.totalPages === 0) return
-    translatingAll = true
-    stopBtn.hidden = false
-    try {
-      await viewer.translateAll((page, total) => {
-        statusEl.textContent = `翻译中 ${page}/${total}…`
-      })
-    } finally {
-      translatingAll = false
-      stopBtn.hidden = true
-    }
+  $('translate-all').addEventListener('click', () => {
+    void translateAllPages()
   })
 
   stopBtn.addEventListener('click', () => {

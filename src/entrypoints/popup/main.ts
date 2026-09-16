@@ -26,6 +26,9 @@ const quickSelection = $<HTMLInputElement>('quick-selection')
 
 let vendors: VendorPreset[] = []
 
+/** 当前标签页是否是 PDF（决定主按钮文案与行为） */
+let isPdf = false
+
 async function init(): Promise<void> {
   const config = await loadConfig()
   const meta = (await chrome.runtime.sendMessage({ type: 'get-providers' })) as {
@@ -56,6 +59,13 @@ async function init(): Promise<void> {
   quickSelection.checked = config.enableSelectionTranslate
 
   syncVendorRow()
+
+  // 判定当前页是否 PDF：是则把主按钮换成「点击翻译 PDF」
+  const pdfState = (await chrome.runtime
+    .sendMessage({ type: 'is-pdf-page' })
+    .catch(() => null)) as { isPdf?: boolean } | null
+  isPdf = Boolean(pdfState?.isPdf)
+  if (isPdf) $('translate').textContent = '点击翻译 PDF'
 
   const stats = (await chrome.runtime.sendMessage({ type: 'cache-stats' })) as {
     entries: number
@@ -97,6 +107,16 @@ $('save').addEventListener('click', async () => {
 $('translate').addEventListener('click', async () => {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
   if (!tab?.id) return
+  // PDF 页面：内容脚本不在（PDF 无 DOM 文本），交由内置查看器翻译，
+  // 按钮文案也随之为「点击翻译 PDF」（对齐参考实现的按钮切换）
+  if (isPdf) {
+    // 必须显式带 URL：真实 popup 里 sender.tab 为空，SW 无法推断目标
+    const res = (await chrome.runtime.sendMessage({ type: 'open-pdf-viewer', url: tab.url })) as
+      | { ok?: boolean; error?: string }
+      | undefined
+    setStatus(res?.ok ? '已打开 PDF 翻译' : (res?.error ?? '无法打开 PDF 翻译'))
+    return
+  }
   await chrome.tabs.sendMessage(tab.id, { type: 'toggle-translate-page' }).catch(() => {
     setStatus('当前页面不可翻译')
   })

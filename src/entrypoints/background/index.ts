@@ -11,6 +11,7 @@ import {
   warmupOcr,
 } from '@/core/offscreen/manager'
 import { listAsrProviders } from '@/core/asr/registry'
+import { detectActiveTabPdf, detectTabIsPdf, pdfViewerUrl } from '@/core/pdf/detect'
 import type { EngineConfig, TranslatableItem } from '@/shared/types'
 
 /**
@@ -45,21 +46,12 @@ export default defineBackground(() => {
     setupContextMenus()
   })
 
-  // 点击 PDF 链接时，引导到扩展内置的 PDF 翻译查看器
-  if (chrome.webNavigation) {
-    // webNavigation 是可选权限，未授权时静默跳过
-  }
-
   chrome.contextMenus?.onClicked.addListener((info, tab) => {
     if (!tab?.id) return
-    // PDF 场景：在当前标签打开翻译查看器
+    // PDF 场景：新标签打开内置翻译查看器
     if (info.menuItemId === 'bilens-translate-pdf') {
       const target = info.linkUrl || tab.url
-      if (target) {
-        chrome.tabs.create({
-          url: chrome.runtime.getURL(`/pdf.html?file=${encodeURIComponent(target)}`),
-        })
-      }
+      if (target) chrome.tabs.create({ url: pdfViewerUrl(target) }).catch(() => {})
       return
     }
     const map: Record<string, string> = {
@@ -87,7 +79,14 @@ export default defineBackground(() => {
       const type = map[command]
       if (!type) return
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
-      if (tab?.id) chrome.tabs.sendMessage(tab.id, { type }).catch(() => {})
+      if (!tab?.id) return
+      // PDF 页面没有内容脚本，消息转发是死路；这里改走内置查看器
+      // （对齐参考实现：PDF 页面上按翻译键 → translatePdfWithNewTab）
+      if (type === 'toggle-translate-page' && (await detectTabIsPdf(tab.id, tab.url))) {
+        if (tab.url) chrome.tabs.create({ url: pdfViewerUrl(tab.url) }).catch(() => {})
+        return
+      }
+      chrome.tabs.sendMessage(tab.id, { type }).catch(() => {})
     })
   }
 
@@ -145,6 +144,20 @@ async function handleMessage(message: unknown, sender?: chrome.runtime.MessageSe
       speechTabId = null
       await stopTabAudioCapture()
       return { ok: true }
+    case 'open-pdf-viewer': {
+      // 内容脚本/弹窗判定到 PDF 后，由 SW 统一开查看器（内容脚本不能建标签页）
+      const url = (message as { url?: string }).url ?? sender?.tab?.url
+      // 护栏：只接管真实文档地址。扩展自身页面（chrome-extension://）等一律拒绝，
+      // 否则会把 popup/设置页当成 PDF 去解析（实测踩过 Invalid PDF structure）。
+      if (!url || !/^(https?|file):/i.test(url)) {
+        return { ok: false, error: '当前页面不是可翻译的 PDF' }
+      }
+      await chrome.tabs.create({ url: pdfViewerUrl(url) })
+      return { ok: true }
+    }
+    case 'is-pdf-page':
+      // 弹窗用：判定当前页是否 PDF，决定按钮文案
+      return { isPdf: Boolean(await detectActiveTabPdf()) }
     case 'cache-stats':
       return getCacheStats()
     case 'clear-cache':
@@ -202,7 +215,9 @@ function setupContextMenus(): void {
       id: 'bilens-translate-pdf',
       title: 'BiLens：用 PDF 翻译打开',
       contexts: ['link', 'page'],
-      targetUrlPatterns: ['*://*/*.pdf', '*://*/*.pdf?*'],
+      // 放宽到 *pdf*：arxiv 的 /pdf/2609.16097、openreview 的 /pdf?id= 都没有
+      // `.pdf` 后缀，旧规则实测全部漏掉。
+      targetUrlPatterns: ['*://*/*pdf*', '*://*/*PDF*'],
     })
     chrome.contextMenus.create({
       id: 'bilens-video-subtitle',

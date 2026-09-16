@@ -13,7 +13,9 @@ export default defineContentScript({
   allFrames: true,
   matchAboutBlank: true,
   main() {
-    // PDF 文件：交由内置查看器处理，页面脚本不介入
+    // PDF 文档：没有可翻译的 DOM 文本，主体脚本不介入。
+    // 入口在别处：content 主体会把「翻译本页」转给内置查看器
+    // （见 main.ts 的 isPdfUrl 判定），SW/popup 也各有对应入口。
     if (location.pathname.toLowerCase().endsWith('.pdf')) return
 
     // 子 frame：先向父 frame 探询可见性，父 frame 不响应则超时兜底放行

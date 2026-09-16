@@ -332,3 +332,41 @@
 .bilens-hide-native-caption {
   visibility: hidden !important;
 }
+
+/* ---------- 内嵌 PDF 提示条 ---------- */
+
+.bilens-pdf-toast {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 2147483600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 380px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #1f2328;
+  color: #fff;
+  font: 13px/1.5 -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.28);
+}
+
+.bilens-pdf-toast button {
+  flex: none;
+  padding: 4px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: #2f6fed;
+  color: #fff;
+  font: inherit;
+  cursor: pointer;
+}
+
+.bilens-pdf-toast-close {
+  background: transparent !important;
+  color: rgba(255, 255, 255, 0.7) !important;
+  font-size: 17px !important;
+  line-height: 1 !important;
+  padding: 0 4px !important;
+}

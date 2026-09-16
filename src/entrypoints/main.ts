@@ -11,6 +11,7 @@ import {
   targetOf,
 } from '@/core/render/renderer'
 import { shouldTranslateFrame } from '@/core/dom/guard'
+import { isPdfUrl } from '@/core/pdf/detect'
 import { collectRuleRoots, matchSiteRule } from '@/rules/sites/matcher'
 import { InputTranslator } from '@/features/input/input-translate'
 import { HoverTranslator } from '@/features/hover/hover-translate'
@@ -68,6 +69,9 @@ export function runContentMain(): void {
       const config = await loadConfig()
       currentConfig = config
       injectStyles()
+      // 内嵌 PDF：先给提示条引导（不自动跳转，避免打扰单纯阅读）
+      const embedded = detectEmbeddedPdf()
+      if (embedded) mountEmbeddedPdfToast(embedded)
       await translatePage(config)
       translated = true
       if (config.translateDynamicContent) startObserver(config)
@@ -254,6 +258,12 @@ export function runContentMain(): void {
   chrome.runtime.onMessage.addListener((message) => {
     const msg = message as { type?: string }
     if (msg.type === 'toggle-translate-page') {
+      // PDF 页面没有可翻译的 DOM（由内置查看器渲染），原地翻译天然无效。
+      // 对齐参考实现：命中 PDF 就转到自带查看器，由它负责全文翻译。
+      if (isPdfUrl(location.href) || document.contentType === 'application/pdf') {
+        void openInPdfViewer(location.href)
+        return
+      }
       if (translated) revert()
       else void run()
     } else if (msg.type === 'toggle-translation-only') {
@@ -288,6 +298,77 @@ export function runContentMain(): void {
     currentConfig.mode = next
     // 真正隐藏/恢复原文。旧实现只设了个属性，而 CSS 里没有对应规则，等于空转。
     setTranslationOnly(next === 'translation-only')
+  }
+
+  /** 把当前页面交给内置 PDF 查看器（内容脚本不能直接建标签页，走 SW） */
+  async function openInPdfViewer(url: string): Promise<void> {
+    await chrome.runtime
+      .sendMessage({ type: 'open-pdf-viewer', url })
+      .catch(() => {})
+  }
+
+  /**
+   * 页面里嵌了 PDF（embed/object/iframe 指向 .pdf）时给一条提示条。
+   *
+   * 内嵌 PDF 的父页面本身是可翻译的 HTML，若直接翻译会把查看器 UI 也翻掉，
+   * 观感很差；这里改为引导用户进内置查看器——对齐参考实现的
+   * 「检测到当前网页内含 PDF，可点击进入文档翻译」提示条。
+   */
+  function detectEmbeddedPdf(): string | null {
+    const embed = document.querySelector<HTMLElement>(
+      'embed[type="application/pdf"], object[type="application/pdf"]',
+    )
+    const src = embed?.getAttribute('src') ?? embed?.getAttribute('data')
+    if (src) {
+      try {
+        return new URL(src, location.href).href
+      } catch {
+        /* 相对地址异常时继续找 iframe */
+      }
+    }
+    for (const frame of document.querySelectorAll('iframe')) {
+      const fs = frame.getAttribute('src')
+      // `.pdf` 后缀之外，还要认 `/pdf/xxx`、`/pdf?id=` 这类路径
+      // （arxiv、openreview 的内嵌文档都没有后缀）
+      if (fs && (/\.pdf(\?|#|$)/i.test(fs) || /\/pdf[/?#]/i.test(fs))) {
+        try {
+          return new URL(fs, location.href).href
+        } catch {
+          return null
+        }
+      }
+    }
+    return null
+  }
+
+  /** 只挂一条，避免动态内容反复触发时叠出多条 */
+  function mountEmbeddedPdfToast(pdfUrl: string): void {
+    if (document.getElementById('bilens-pdf-toast')) return
+    const toast = document.createElement('div')
+    toast.id = 'bilens-pdf-toast'
+    toast.className = 'bilens-pdf-toast'
+    toast.setAttribute('translate', 'no')
+
+    const text = document.createElement('span')
+    text.textContent = '检测到本页含 PDF，可用 BiLens 打开文档翻译'
+
+    const action = document.createElement('button')
+    action.type = 'button'
+    action.textContent = '文档翻译'
+    action.addEventListener('click', () => {
+      void openInPdfViewer(pdfUrl)
+      toast.remove()
+    })
+
+    const close = document.createElement('button')
+    close.type = 'button'
+    close.className = 'bilens-pdf-toast-close'
+    close.textContent = '×'
+    close.setAttribute('aria-label', '关闭')
+    close.addEventListener('click', () => toast.remove())
+
+    toast.append(text, action, close)
+    document.documentElement.appendChild(toast)
   }
 
   /** 视频字幕开关 */
