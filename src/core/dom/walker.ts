@@ -50,7 +50,20 @@ export interface CollectedBlock {
   inline: boolean
   /** 译文里要还原的行内元素快照（超链接/加粗等），空数组表示纯文本 */
   specs: RichSpec[]
+  /** 原文实际生效的排印样式快照，用于让译文外观与原文一致 */
+  style?: StyleSnapshot
 }
+
+/**
+ * 译文样式快照。
+ *
+ * 为什么需要它：原文的真实样式常常设在**内层**元素上（X 推文的正文样式
+ * 挂在内层 span，外层容器只有默认值）。译文若挂到外层容器再靠 `inherit`
+ * 继承，拿到的是外层默认样式——实测字号大 2px、颜色偏亮。
+ * 这里直接记录「文本节点自身父元素」的计算样式，渲染时写回译文容器，
+ * 挂在哪一层都不会走样。
+ */
+export type StyleSnapshot = Record<string, string>
 
 /**
  * 遍历 DOM 抽取待翻译文本节点。
@@ -200,6 +213,12 @@ function walkContainer(
     if (child.nodeType !== Node.ELEMENT_NODE) continue
     const childEl = child as Element
     if (!isTranslatableElement(childEl, cfg)) continue
+    // <br> 是作者显式写下的换行（X 推文、歌词、地址块都靠它分段）。
+    // 旧实现把它折叠成空格，整段被压成一坨；这里按它切段，每行独立成段。
+    if (childEl.tagName === 'BR') {
+      flush()
+      continue
+    }
     if (BLOCK_DISPLAYS.has(getComputedStyle(childEl).display)) {
       flush()
       walkContainer(childEl, cfg, out, depth + 1)
@@ -211,7 +230,13 @@ function walkContainer(
       walkContainer(childEl, cfg, out, depth + 1)
       continue
     }
-    for (const text of collectInlineText(childEl)) runs.push(text)
+    // 行内元素内部也可能带 <br>（<span>第一行<br>第二行</span>），
+    // 按分组并入当前段，组与组之间切段。
+    const groups = collectInlineRuns(childEl)
+    groups.forEach((group, index) => {
+      if (index > 0) flush()
+      runs.push(...group)
+    })
   }
   flush()
 
@@ -242,6 +267,7 @@ function walkContainer(
       container,
       inline,
       specs,
+      style: snapshotStyle(nodes),
     })
   }
 }
@@ -283,17 +309,34 @@ function isCandidateText(node: Text): boolean {
   return true
 }
 
-/** 收集行内元素内部的全部文本节点（文档顺序） */
-function collectInlineText(el: Element): Text[] {
-  const out: Text[] = []
-  const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT)
-  let current = walker.nextNode()
-  while (current) {
-    const text = current as Text
-    if (isCandidateText(text)) out.push(text)
-    current = walker.nextNode()
+/**
+ * 收集行内元素内部的文本节点，按显式换行（<br>）分组成若干「行」。
+ * 返回多组时调用方在组之间切段，保证译文与原文的行结构一致。
+ */
+function collectInlineRuns(el: Element): Text[][] {
+  const groups: Text[][] = [[]]
+  const visit = (node: Node): void => {
+    for (const child of Array.from(node.childNodes)) {
+      if (child.nodeType === Node.TEXT_NODE) {
+        const text = child as Text
+        if (isCandidateText(text)) groups[groups.length - 1]?.push(text)
+        continue
+      }
+      if (child.nodeType !== Node.ELEMENT_NODE) continue
+      const childEl = child as Element
+      if (HARD_SKIP.has(childEl.tagName)) continue
+      if (childEl.matches(OURS) || hasSkipAncestor(childEl)) continue
+      if (childEl.tagName === 'BR') {
+        groups.push([])
+        continue
+      }
+      // 块级后代交给上层下钻处理
+      if (hasBlockDescendant(childEl)) continue
+      visit(childEl)
+    }
   }
-  return out
+  visit(el)
+  return groups
 }
 
 /** 行内元素内部是否嵌了块级后代（决定要不要切段下钻） */
@@ -319,6 +362,42 @@ function joinSegmentText(nodes: Text[]): string {
     .join('')
     .replace(/\s+/g, ' ')
     .trim()
+}
+
+/** 需要快照的排印属性（只取影响观感的，背景/边框等交给主题） */
+const SNAPSHOT_PROPS = [
+  'font-family', 'font-size', 'font-weight', 'font-style', 'font-variant',
+  'line-height', 'letter-spacing', 'word-spacing', 'text-align',
+  'text-transform', 'white-space', 'text-indent', 'direction',
+] as const
+
+/**
+ * 记录段落的实际排印样式。
+ *
+ * 取「段内最长的那个文本节点的父元素」——正文样式通常就设在这一层，
+ * 比外层容器更具代表性（外层的字号/颜色往往只是默认值）。
+ */
+function snapshotStyle(nodes: Text[]): StyleSnapshot | undefined {
+  let best: Text | undefined
+  let bestLength = 0
+  for (const node of nodes) {
+    const length = (node.nodeValue ?? '').trim().length
+    if (length > bestLength) {
+      bestLength = length
+      best = node
+    }
+  }
+  const el = best?.parentElement
+  if (!el || bestLength === 0) return undefined
+
+  const computed = getComputedStyle(el)
+  const snapshot: StyleSnapshot = {}
+  for (const prop of SNAPSHOT_PROPS) {
+    const value = computed.getPropertyValue(prop)
+    if (value) snapshot[prop] = value
+  }
+  if (computed.color) snapshot.color = computed.color
+  return Object.keys(snapshot).length > 0 ? snapshot : undefined
 }
 
 /** 段内最后一个「有内容」的节点，作为译文锚点（避免锚在空白节点上） */

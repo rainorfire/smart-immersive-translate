@@ -69,8 +69,77 @@ export function segmentToRich(
 
   const specs: RichSpec[] = []
   const parts: string[] = []
+
+  // 段内文本节点数少于「区间内全部候选文本节点数」时，说明这一段只是某个
+  // 行内容器的一部分（典型来源：按 <br> 拆行后，同一个 <span> 里出来的多行）。
+  // 整区间克隆会把同容器的其它行一并序列化进来 → 行与行重复。
+  // 这种情况走「按给定节点精确序列化」。
+  if (countCandidateTexts(frag) !== nodes.length) {
+    serializeExact(container, nodes, parts, specs)
+    return { rich: parts.join('').replace(/\s+/g, ' ').trim(), specs }
+  }
+
   serialize(frag, parts, specs)
   return { rich: parts.join('').replace(/\s+/g, ' ').trim(), specs }
+}
+
+/** 统计片段里的候选文本节点数（与 walker 的判定保持同一口径） */
+function countCandidateTexts(node: Node): number {
+  let count = 0
+  for (const child of Array.from(node.childNodes)) {
+    if (child.nodeType === Node.TEXT_NODE) {
+      count += 1
+      continue
+    }
+    if (child.nodeType !== Node.ELEMENT_NODE) continue
+    const el = child as Element
+    if (DROP_SUBTREE.has(el.tagName)) continue
+    if (el.className && String(el.className).includes('bilens-')) continue
+    count += countCandidateTexts(el)
+  }
+  return count
+}
+
+/** node 到 container 之间的行内祖先链（自外向内） */
+function inlineChain(container: Element, node: Node): Element[] {
+  const chain: Element[] = []
+  let current: Node | null = node.parentNode
+  while (current && current !== container) {
+    if (current.nodeType === Node.ELEMENT_NODE) {
+      const el = current as Element
+      if (KEEP_TAGS.has(el.tagName)) chain.push(el)
+    }
+    current = current.parentNode
+  }
+  return chain.reverse()
+}
+
+/**
+ * 精确序列化：只序列化给定的文本节点，并把它们的行内祖先还原成占位标签。
+ *
+ * 与区间克隆的区别：不引入同容器内其它节点的内容，因此按 <br> 拆出的
+ * 每一行都能各自拿到只属于自己的富文本。
+ */
+function serializeExact(
+  container: Element,
+  nodes: Text[],
+  parts: string[],
+  specs: RichSpec[],
+): void {
+  for (const node of nodes) {
+    const chain = inlineChain(container, node)
+    const ids: number[] = []
+    for (const el of chain) {
+      const id = specs.length
+      specs[id] = { tag: el.tagName, attrs: attrText(el) }
+      ids.push(id)
+      parts.push(`<${RICH_TAG}${id}>`)
+    }
+    parts.push(node.nodeValue ?? '')
+    for (let i = ids.length - 1; i >= 0; i -= 1) {
+      parts.push(`</${RICH_TAG}${ids[i]}>`)
+    }
+  }
 }
 
 /** 找到 node 在 container 下的最外层祖先（用于确定段落边界） */

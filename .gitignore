@@ -19,6 +19,11 @@ dist/
 .vscode/*
 !.vscode/extensions.json
 
+# 本地 Whisper 运行时（C 路按需安装的第三方产物，约 13MB）
+# 用 scripts/install-whisper-runtime.mjs 生成；
+# 不提交是为了让不用 C 路的用户拿到的包体保持 ~13MB
+public/whisper/
+
 # 分析原料（独立归档在 ../reverse-immersive-translate/）
 reverse/
 

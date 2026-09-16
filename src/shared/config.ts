@@ -11,6 +11,19 @@ export const DEFAULT_CONFIG: UserConfig = {
     maxTextLengthPerRequest: 1800,
     maxTextGroupLengthPerRequest: 4000,
   },
+  // 语音翻译（AI 字幕）：默认走 A 路（OpenAI 兼容 /audio/transcriptions），
+  // 复用文本翻译的 Key，开箱即用；B/C 路在设置页切换
+  asr: {
+    provider: 'openai-asr',
+    enabled: false,
+    vendor: 'siliconflow',
+    model: 'FunAudioLLM/SenseVoiceSmall',
+    reuseTranslationKey: true,
+    language: 'auto',
+    chunkSeconds: 6,
+    translateWith: 'text',
+    autoTranslate: true,
+  },
   targetLanguage: 'zh-CN',
   sourceLanguage: 'auto',
   mode: 'dual',
@@ -44,6 +57,7 @@ export async function loadConfig(): Promise<UserConfig> {
     ...structuredClone(DEFAULT_CONFIG),
     ...saved,
     engine: { ...DEFAULT_CONFIG.engine, ...saved.engine },
+    asr: { ...DEFAULT_CONFIG.asr, ...saved.asr },
   }
 }
 
@@ -64,6 +78,7 @@ export function onConfigChange(listener: (config: UserConfig) => void): () => vo
       ...structuredClone(DEFAULT_CONFIG),
       ...saved,
       engine: { ...DEFAULT_CONFIG.engine, ...saved.engine },
+      asr: { ...DEFAULT_CONFIG.asr, ...saved.asr },
     })
   }
   chrome.storage.onChanged.addListener(handler)

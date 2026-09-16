@@ -1,5 +1,5 @@
 import type { TranslationMode, TranslationPosition } from '@/shared/types'
-import type { CollectedBlock } from '../dom/walker'
+import type { CollectedBlock, StyleSnapshot } from '../dom/walker'
 import { hasLeftoverPlaceholder, richToFragment, type RichSpec } from '../translate/rich'
 
 /**
@@ -64,6 +64,8 @@ export interface RenderTarget {
   inline?: boolean
   /** 译文里要还原的行内元素快照（超链接/加粗等） */
   specs?: RichSpec[]
+  /** 原文实际生效的排印样式快照 */
+  style?: StyleSnapshot
 }
 
 interface RenderedSegment {
@@ -85,6 +87,7 @@ export function targetOf(block: CollectedBlock): RenderTarget {
     container: block.container,
     inline: block.inline,
     specs: block.specs,
+    style: block.style,
   }
 }
 
@@ -191,6 +194,7 @@ export function renderTranslation(
 
   const inner = createInner()
   fillInner(inner, text, target)
+  applyStyleSnapshot(wrapper, target.style)
   wrapper.appendChild(inner)
 
   insertWrapper(wrapper, target, options)
@@ -239,7 +243,26 @@ function upgradeToTranslation(
     inner = createInner()
     wrapper.appendChild(inner)
   }
+  applyStyleSnapshot(wrapper, target.style)
   fillInner(inner as HTMLElement, text, target)
+}
+
+/**
+ * 把原文样式快照写成 CSS 变量，交给 inject.css 消费。
+ *
+ * 走变量而不是直接写内联声明：主题规则（如「加粗」）的优先级高于
+ * `.bilens-target-inner` 的基础声明，因此用户选了主题仍能覆盖，
+ * 不会被快照「焊死」。
+ */
+export function applyStyleSnapshot(
+  wrapper: HTMLElement,
+  style?: StyleSnapshot,
+): void {
+  if (!style) return
+  for (const [prop, value] of Object.entries(style)) {
+    if (!value) continue
+    wrapper.style.setProperty(`--bilens-src-${prop}`, value)
+  }
 }
 
 /** 渲染错误提示，不阻塞阅读 */

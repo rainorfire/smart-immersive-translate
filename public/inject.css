@@ -31,13 +31,30 @@
 }
 
 .bilens-target-inner {
-  color: var(--bilens-target-color);
-  font-size: calc(1em * var(--bilens-font-scale));
-  font-family: inherit;
-  font-style: inherit;
-  font-weight: inherit;
-  letter-spacing: inherit;
-  line-height: inherit;
+  /* 优先用原文样式快照（--bilens-src-*），没有快照时回退到继承。
+     快照由渲染层写在 wrapper 上，解决「原文样式设在内层元素、译文却继承外层默认值」
+     导致的字号/颜色不一致（实测 X 推文差 2px、颜色偏亮）。 */
+  color: var(--bilens-src-color, var(--bilens-target-color));
+  font-size: var(
+    --bilens-src-font-size,
+    calc(1em * var(--bilens-font-scale))
+  );
+  font-family: var(--bilens-src-font-family, inherit);
+  font-style: var(--bilens-src-font-style, inherit);
+  font-weight: var(--bilens-src-font-weight, inherit);
+  font-variant: var(--bilens-src-font-variant, inherit);
+  letter-spacing: var(--bilens-src-letter-spacing, inherit);
+  line-height: var(--bilens-src-line-height, inherit);
+  word-spacing: var(--bilens-src-word-spacing, inherit);
+  text-transform: var(--bilens-src-text-transform, inherit);
+  text-indent: var(--bilens-src-text-indent, inherit);
+  white-space: var(--bilens-src-white-space, inherit);
+  direction: var(--bilens-src-direction, inherit);
+}
+
+/* 段落内显式换行（原文 <br>）分段后的译文块：保持与原文一致的段落感 */
+.bilens-target-wrapper.bilens-target-block {
+  margin: 0;
 }
 
 /*
@@ -143,6 +160,26 @@
 
 .bilens-theme-italic .bilens-target-inner {
   font-style: italic;
+}
+
+/* ---------- AI 字幕状态条 ---------- */
+
+.bilens-video-banner {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  max-width: 320px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(31, 35, 40, 0.92);
+  color: #fff;
+  font: 12px/1.5 -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+  z-index: 2147483647;
+  pointer-events: none;
+}
+
+.bilens-video-banner[data-error] {
+  background: rgba(176, 42, 55, 0.95);
 }
 
 /* ---------- 划词气泡 ---------- */

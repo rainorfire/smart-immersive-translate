@@ -6,6 +6,8 @@
  */
 
 const OFFSCREEN_PATH = 'offscreen.html'
+/** 音频捕获也需要离屏文档，且同样是长生命周期任务 */
+export const AUDIO_OFFSCREEN_JUSTIFICATION = '捕获标签页音频做语音识别（AI 字幕）'
 let creating: Promise<void> | null = null
 let lastUsedAt = 0
 const IDLE_TIMEOUT = 60_000
@@ -25,7 +27,10 @@ async function hasOffscreen(): Promise<boolean> {
   return clients.some((c) => c.url.includes(OFFSCREEN_PATH))
 }
 
-export async function ensureOffscreen(): Promise<void> {
+export async function ensureOffscreen(
+  reason?: chrome.offscreen.Reason,
+  justification?: string,
+): Promise<void> {
   if (await hasOffscreen()) return
   if (creating) {
     await creating
@@ -36,8 +41,10 @@ export async function ensureOffscreen(): Promise<void> {
     try {
       await chrome.offscreen.createDocument({
         url: OFFSCREEN_PATH,
-        reasons: [chrome.offscreen.Reason?.DOM_PARSER ?? 'DOM_PARSER'],
-        justification: '执行图片文字识别（OCR）与文档解析',
+        // USER_MEDIA 是 getUserMedia（音频捕获）必需的原因声明；
+        // OCR 用 DOM_PARSER。同一个离屏文档可同时承载两者。
+        reasons: [reason ?? chrome.offscreen.Reason?.DOM_PARSER ?? 'DOM_PARSER'],
+        justification: justification ?? '执行图片文字识别（OCR）与文档解析',
       })
     } catch (e) {
       // 已存在时会抛错，视为成功
@@ -81,6 +88,58 @@ export async function requestOcr(imageUrl: string, lang: string): Promise<OcrRes
   })
 }
 
+/**
+ * 启动标签页音频捕获。
+ *
+ * 链路：SW 拿 streamId（只有 SW 能调 tabCapture.setMediaStreamId 系列 API）
+ *      → 交给离屏文档取流、切片 → 片段以消息回推。
+ *
+ * @param tabId 目标标签页
+ * @param chunkSeconds 切片时长（秒）
+ */
+export async function startTabAudioCapture(
+  tabId: number,
+  chunkSeconds: number,
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    await ensureOffscreen('USER_MEDIA' as chrome.offscreen.Reason, AUDIO_OFFSCREEN_JUSTIFICATION)
+    const streamId = await chrome.tabCapture.getMediaStreamId({ targetTabId: tabId })
+    const result = (await chrome.runtime.sendMessage({
+      type: 'audio-start',
+      streamId,
+      chunkSeconds,
+      keepAudible: true,
+    })) as { ok: boolean; error?: string } | undefined
+    return result ?? { ok: false, error: '离屏文档无响应' }
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e)
+    // tabCapture 的平台限制：必须先「调用过扩展」（点扩展图标 / 右键菜单 /
+    // 快捷键都会授予 activeTab），否则 Chrome 直接拒绝，报文是
+    // "Extension has not been invoked for the current page"。
+    // 这里把它翻译成用户能照做的动作，而不是抛英文原文。
+    if (message.includes('not been invoked')) {
+      return {
+        ok: false,
+        error: '请先点击浏览器工具栏的 BiLens 图标（或用右键菜单）再启动 AI 字幕——Chrome 要求先调用扩展才允许捕获标签页音频',
+      }
+    }
+    if (message.includes('Cannot capture') || message.includes('Chrome pages')) {
+      return { ok: false, error: '当前页面不允许捕获音频（Chrome 内部页/应用商店页不支持）' }
+    }
+    return { ok: false, error: message }
+  }
+}
+
+/** 停止标签页音频捕获并关闭离屏文档 */
+export async function stopTabAudioCapture(): Promise<void> {
+  try {
+    await chrome.runtime.sendMessage({ type: 'audio-stop' })
+  } catch {
+    // 离屏文档可能已关闭
+  }
+  await maybeCloseOffscreen(true)
+}
+
 /** 预热：提前加载 OCR 引擎，首次识别更快 */
 export async function warmupOcr(lang: string): Promise<void> {
   try {
@@ -91,10 +150,10 @@ export async function warmupOcr(lang: string): Promise<void> {
   }
 }
 
-/** 闲置超过阈值则关闭离屏文档，释放内存 */
-export async function maybeCloseOffscreen(): Promise<void> {
-  if (lastUsedAt === 0) return
-  if (Date.now() - lastUsedAt < IDLE_TIMEOUT) return
+/** 闲置超过阈值则关闭离屏文档，释放内存（force 用于停止音频后立即回收） */
+export async function maybeCloseOffscreen(force = false): Promise<void> {
+  if (!force && lastUsedAt === 0) return
+  if (!force && Date.now() - lastUsedAt < IDLE_TIMEOUT) return
   try {
     await chrome.offscreen.closeDocument()
   } catch {

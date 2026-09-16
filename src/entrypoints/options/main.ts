@@ -3,7 +3,7 @@ import { TARGET_LANGUAGES } from '@/shared/languages'
 import { THEMES } from '@/core/render/renderer'
 import type { VendorPreset } from '@/core/engine/vendors'
 import type { TranslateProvider } from '@/core/engine/provider'
-import type { TranslationMode, TranslationPosition } from '@/shared/types'
+import type { TranslationMode, TranslationPosition, UserConfig } from '@/shared/types'
 
 const $ = <T extends HTMLElement>(id: string): T => {
   const el = document.getElementById(id)
@@ -38,7 +38,35 @@ const ocrLanguage = $<HTMLSelectElement>('ocr-language')
 const pdfMode = $<HTMLSelectElement>('pdf-mode')
 const siteRules = $<HTMLInputElement>('site-rules')
 
+// ---- 语音翻译（AI 字幕）：与文本翻译配置完全独立的一组 ----
+const asrEnabled = $<HTMLInputElement>('asr-enabled')
+const asrProvider = $<HTMLSelectElement>('asr-provider')
+const asrVendor = $<HTMLSelectElement>('asr-vendor')
+const asrModel = $<HTMLInputElement>('asr-model')
+const asrBaseUrl = $<HTMLInputElement>('asr-baseurl')
+const asrKey = $<HTMLInputElement>('asr-key')
+const asrReuseKey = $<HTMLInputElement>('asr-reuse-key')
+const asrAppKey = $<HTMLInputElement>('asr-appkey')
+const asrAkId = $<HTMLInputElement>('asr-akid')
+const asrAkSecret = $<HTMLInputElement>('asr-aksecret')
+const asrLocalModel = $<HTMLSelectElement>('asr-localmodel')
+const asrLanguage = $<HTMLSelectElement>('asr-language')
+const asrChunk = $<HTMLInputElement>('asr-chunk')
+const asrAutoTranslate = $<HTMLInputElement>('asr-auto-translate')
+const asrHint = $<HTMLParagraphElement>('asr-hint')
+
 let vendors: VendorPreset[] = []
+
+/** 语音识别引擎列表（由 SW 提供，与翻译引擎列表平行） */
+let asrProviders: Array<{ id: string; name: string; mode: string; requiresAuth: boolean }> = []
+
+/** 各 ASR 引擎需要的字段（按引擎类型显示/隐藏，避免一堆无关输入框） */
+const ASR_FIELDS: Record<string, string[]> = {
+  'openai-asr': ['asr-vendor-field', 'asr-model-field', 'asr-baseurl-field', 'asr-key-field'],
+  'aliyun-nls': ['asr-appkey-field', 'asr-aksecret-field'],
+  'tencent-asr': ['asr-akid-field', 'asr-aksecret-field'],
+  'local-whisper': ['asr-localmodel-field'],
+}
 
 async function init(): Promise<void> {
   const config = await loadConfig()
@@ -47,6 +75,14 @@ async function init(): Promise<void> {
     vendors: VendorPreset[]
   }
   vendors = meta.vendors
+
+  const asrMeta = (await chrome.runtime.sendMessage({ type: 'get-asr-providers' })) as {
+    providers: Array<{ id: string; name: string; mode: string; requiresAuth: boolean }>
+  }
+  asrProviders = asrMeta.providers ?? []
+  asrProvider.innerHTML = asrProviders
+    .map((p) => `<option value="${p.id}">${p.name}</option>`)
+    .join('')
 
   engineSelect.innerHTML = meta.providers
     .map((p) => `<option value="${p.id}">${p.name}</option>`)
@@ -63,6 +99,7 @@ async function init(): Promise<void> {
   themeSelect.innerHTML = THEMES.map(
     (t) => `<option value="${t.id}">${t.label}</option>`,
   ).join('')
+  asrVendor.innerHTML = vendors.map((v) => `<option value="${v.id}">${v.name}</option>`).join('')
 
   engineSelect.value = config.engine.provider
   vendorSelect.value = config.engine.vendor ?? 'deepseek'
@@ -88,7 +125,24 @@ async function init(): Promise<void> {
   pdfMode.value = config.pdfLayoutMode
   siteRules.checked = config.enableSiteRules
 
+  // 语音翻译配置（独立一组）
+  asrEnabled.checked = config.asr.enabled
+  asrProvider.value = config.asr.provider
+  asrVendor.value = config.asr.vendor ?? 'siliconflow'
+  asrModel.value = config.asr.model ?? ''
+  asrBaseUrl.value = config.asr.baseUrl ?? ''
+  asrKey.value = config.asr.apiKey ?? ''
+  asrReuseKey.checked = config.asr.reuseTranslationKey ?? true
+  asrAppKey.value = config.asr.appKey ?? ''
+  asrAkId.value = config.asr.accessKeyId ?? ''
+  asrAkSecret.value = config.asr.accessKeySecret ?? ''
+  asrLocalModel.value = config.asr.localModel ?? 'base'
+  asrLanguage.value = config.asr.language
+  asrChunk.value = String(config.asr.chunkSeconds)
+  asrAutoTranslate.checked = config.asr.autoTranslate
+
   applyEngineVisibility()
+  applyAsrVisibility()
   await refreshCacheInfo()
 }
 
@@ -110,9 +164,44 @@ function applyEngineVisibility(): void {
   }
 }
 
+/** 按所选 ASR 引擎显示对应字段 + 给出该路的使用提示 */
+function applyAsrVisibility(): void {
+  const provider = asrProvider.value
+  const visible = new Set(ASR_FIELDS[provider] ?? [])
+  const allFields = [
+    'asr-vendor-field', 'asr-model-field', 'asr-baseurl-field', 'asr-key-field',
+    'asr-appkey-field', 'asr-akid-field', 'asr-aksecret-field', 'asr-localmodel-field',
+  ]
+  for (const id of allFields) $(id).hidden = !visible.has(id)
+  // 复用文本 Key 只对 A 路有意义
+  $('asr-reuse-field').hidden = provider !== 'openai-asr'
+  asrKey.hidden = provider === 'openai-asr' && asrReuseKey.checked
+
+  const preset = vendors.find((v) => v.id === asrVendor.value)
+  if (provider === 'openai-asr') {
+    if (preset && !asrBaseUrl.value) asrBaseUrl.value = preset.baseUrl
+    asrHint.textContent =
+      'A 路：走 OpenAI 兼容的 /audio/transcriptions，硅基流动 SenseVoice / 通义 / Whisper 均可用，直接复用文本翻译的 Key。'
+  } else if (provider === 'aliyun-nls') {
+    asrHint.textContent = 'B 路：阿里云 NLS 实时识别（WebSocket）。需 AppKey 与 Token（或 AccessKey）。'
+  } else if (provider === 'tencent-asr') {
+    asrHint.textContent = 'B 路：腾讯云语音识别（TC3 签名，扩展内本地计算）。需 SecretId / SecretKey。'
+  } else {
+    asrHint.textContent = 'C 路：浏览器内 Whisper，离线可用、免 Key；首次会下载模型（几十 MB），CPU 推理较慢。'
+  }
+}
+
 engineSelect.addEventListener('change', () => {
   applyEngineVisibility()
 })
+
+asrProvider.addEventListener('change', applyAsrVisibility)
+asrVendor.addEventListener('change', () => {
+  const preset = vendors.find((v) => v.id === asrVendor.value)
+  if (preset) asrBaseUrl.value = preset.baseUrl
+  applyAsrVisibility()
+})
+asrReuseKey.addEventListener('change', applyAsrVisibility)
 
 vendorSelect.addEventListener('change', () => {
   const preset = vendors.find((v) => v.id === vendorSelect.value)
@@ -147,6 +236,26 @@ $('save').addEventListener('click', async () => {
   config.ocrLanguage = ocrLanguage.value
   config.pdfLayoutMode = pdfMode.value as 'bilingual' | 'translation-only'
   config.enableSiteRules = siteRules.checked
+
+  // 语音翻译（独立一组，不回写 engine 的任何字段）
+  config.asr = {
+    ...config.asr,
+    enabled: asrEnabled.checked,
+    provider: asrProvider.value as UserConfig['asr']['provider'],
+    vendor: asrVendor.value,
+    model: asrModel.value.trim(),
+    baseUrl: asrBaseUrl.value.trim(),
+    apiKey: asrKey.value.trim(),
+    reuseTranslationKey: asrReuseKey.checked,
+    appKey: asrAppKey.value.trim(),
+    accessKeyId: asrAkId.value.trim(),
+    accessKeySecret: asrAkSecret.value.trim(),
+    localModel: asrLocalModel.value as 'tiny' | 'base' | 'small',
+    language: asrLanguage.value,
+    chunkSeconds: Number(asrChunk.value) || 6,
+    autoTranslate: asrAutoTranslate.checked,
+  }
+
   await saveConfig(config)
   statusEl.textContent = '✓ 已保存'
   window.setTimeout(() => {

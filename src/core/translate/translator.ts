@@ -2,6 +2,7 @@ import type { EngineConfig, TranslatableItem, TranslateRequest } from '@/shared/
 import { getProvider } from '../engine/registry'
 import { getCached, hashKey, setCached } from './cache'
 import { buildBatches, mergeSplit } from './splitter'
+import { postprocessTranslation } from './postprocess'
 
 export interface TranslateOptions {
   items: TranslatableItem[]
@@ -89,6 +90,10 @@ export async function translateItems(options: TranslateOptions): Promise<Transla
   }
 
   const { merged, failed: missingIds } = mergeSplit(pending, rawTranslations)
+  // 归一化译文里的符号（引擎可能把时间戳的全角冒号「汉化」）
+  for (const id of Object.keys(merged)) {
+    merged[id] = postprocessTranslation(merged[id] as string)
+  }
   Object.assign(translations, merged)
   for (const id of missingIds) {
     failed[id] = rawFailed[id] ?? '翻译失败'

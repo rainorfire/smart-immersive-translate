@@ -18,6 +18,8 @@ import { SelectionTranslator } from '@/features/selection/selection-translate'
 import { mountFileDropZone } from '@/features/file/file-translate-ui'
 import { ImageTranslator } from '@/features/image/image-translate'
 import { VideoSubtitleController } from '@/features/video/video-subtitle'
+import { SpeechSubtitleController } from '@/features/video/speech-subtitle'
+import { SubtitleOverlay } from '@/features/video/renderer'
 import type { TranslateOutcome } from '@/core/translate/translator'
 import type { UserConfig, TranslatableItem } from '@/shared/types'
 import type { RenderTarget } from '@/core/render/renderer'
@@ -46,6 +48,18 @@ export function runContentMain(): void {
   const selectionTranslator = new SelectionTranslator()
   const imageTranslator = new ImageTranslator()
   const videoController = new VideoSubtitleController()
+  // AI 字幕（语音识别）：视频没有字幕轨时的兜底能力。
+  // 与 videoController 共用一套覆盖层组件，但音频链路完全独立。
+  const speechOverlay = new SubtitleOverlay({
+    source: 'auto',
+    target: 'zh-CN',
+    bilingual: true,
+    fontSize: 26,
+  })
+  const speechController = new SpeechSubtitleController(
+    { source: 'auto', target: 'zh-CN', bilingual: true },
+    speechOverlay,
+  )
 
   const run = async (): Promise<void> => {
     if (translating) return
@@ -90,6 +104,7 @@ export function runContentMain(): void {
         bilingual: config.videoSubtitleBilingual,
         fontSize: config.videoSubtitleFontSize,
       })
+      syncSpeech(config)
       return
     }
 
@@ -109,6 +124,7 @@ export function runContentMain(): void {
       fontSize: config.videoSubtitleFontSize,
     })
 
+    syncSpeech(config)
     if (config.enableInputTranslate) detachers.push(inputTranslator.attach())
     if (config.enableHoverTranslate) detachers.push(hoverTranslator.attach())
     if (config.enableSelectionTranslate) detachers.push(selectionTranslator.attach())
@@ -126,10 +142,62 @@ export function runContentMain(): void {
     if (config.enableVideoSubtitle) maybeAttachVideoSubtitle()
   }
 
+  /** 让 AI 字幕控制器跟随最新配置（语音配置与文本配置各自独立） */
+  function syncSpeech(config: UserConfig): void {
+    speechController.update({
+      source: config.sourceLanguage,
+      target: config.targetLanguage,
+      bilingual: config.videoSubtitleBilingual,
+      onError: (message) => setBanner(`AI 字幕：${message}`, true),
+      onState: (state) => {
+        if (state.message) setBanner(`AI 字幕：${state.message}`, false)
+      },
+    })
+    speechOverlay.update({
+      bilingual: config.videoSubtitleBilingual,
+      fontSize: config.videoSubtitleFontSize,
+    })
+  }
+
+  /** 页面右下角的轻量状态条（AI 字幕的进度与错误提示） */
+  let banner: HTMLElement | null = null
+  let bannerTimer: number | null = null
+  function setBanner(text: string, isError: boolean): void {
+    if (!banner) {
+      banner = document.createElement('div')
+      banner.className = 'bilens-video-banner'
+      document.documentElement.appendChild(banner)
+    }
+    banner.textContent = text
+    banner.toggleAttribute('data-error', isError)
+    if (bannerTimer !== null) window.clearTimeout(bannerTimer)
+    bannerTimer = window.setTimeout(() => {
+      banner?.remove()
+      banner = null
+      bannerTimer = null
+    }, isError ? 6000 : 3000)
+  }
+
+  /** 切换 AI 字幕（语音识别）开关 */
+  async function toggleSpeechSubtitle(): Promise<void> {
+    if (speechController.isActive) {
+      speechController.stop()
+      setBanner('AI 字幕已停止', false)
+      return
+    }
+    const state = await speechController.start()
+    setBanner(`AI 字幕：${state.message}`, !state.active)
+    // 无字幕轨时的自动降级：AI 字幕起来后不再跑『翻译已有字幕轨』
+    if (state.active && videoController.isActive) videoController.stop()
+  }
+
   const revert = (): void => {
     stopObserver()
     revertAll(document)
     videoController.stop()
+    speechController.stop()
+    banner?.remove()
+    banner = null
     translated = false
   }
 
@@ -198,6 +266,13 @@ export function runContentMain(): void {
       void toggleVideoSubtitle()
     } else if (msg.type === 'translate-video-subtitles-all') {
       void videoController.translateAll()
+    } else if (msg.type === 'toggle-speech-subtitle') {
+      void toggleSpeechSubtitle()
+    } else if (msg.type === 'speech-chunk') {
+      // 离屏文档回推的音频片段 → 送 ASR
+      speechController.pushChunk(
+        (message as { chunk: { data: ArrayBuffer; mimeType: string; startedAt: number; duration: number } }).chunk,
+      )
     } else if (msg.type === 'config-changed') {
       if (translated) {
         revert()

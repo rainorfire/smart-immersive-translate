@@ -3,7 +3,14 @@ import { translateItems } from '@/core/translate/translator'
 import { clearCache, getCacheStats } from '@/core/translate/cache'
 import { listProviders } from '@/core/engine/registry'
 import { VENDOR_PRESETS } from '@/core/engine/vendors'
-import { maybeCloseOffscreen, requestOcr, warmupOcr } from '@/core/offscreen/manager'
+import {
+  maybeCloseOffscreen,
+  requestOcr,
+  startTabAudioCapture,
+  stopTabAudioCapture,
+  warmupOcr,
+} from '@/core/offscreen/manager'
+import { listAsrProviders } from '@/core/asr/registry'
 import type { EngineConfig, TranslatableItem } from '@/shared/types'
 
 /**
@@ -22,8 +29,14 @@ export interface TranslateMessage {
 }
 
 export default defineBackground(() => {
-  chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-    handleMessage(message).then(sendResponse)
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    // 音频片段从离屏文档回推：转交给发起捕获的标签页（离屏文档不知道是谁发起的）
+    if ((message as { type?: string })?.type === 'audio-chunk') {
+      routeAudioChunk(message as AudioChunkMessage)
+      sendResponse({ ok: true })
+      return false
+    }
+    handleMessage(message, sender).then(sendResponse)
     // 返回 true 表示异步响应
     return true
   })
@@ -54,6 +67,7 @@ export default defineBackground(() => {
       'bilens-translation-only': 'toggle-translation-only',
       'bilens-translate-input': 'translate-input-box',
       'bilens-video-subtitle': 'toggle-video-subtitle',
+      'bilens-speech-subtitle': 'toggle-speech-subtitle',
       'bilens-translate-images': 'translate-images',
     }
     const type = map[String(info.menuItemId)]
@@ -68,6 +82,7 @@ export default defineBackground(() => {
         'toggle-translation-only': 'toggle-translation-only',
         'translate-input-box': 'translate-input-box',
         'toggle-video-subtitle': 'toggle-video-subtitle',
+        'toggle-speech-subtitle': 'toggle-speech-subtitle',
       }
       const type = map[command]
       if (!type) return
@@ -86,7 +101,26 @@ export default defineBackground(() => {
   })
 })
 
-async function handleMessage(message: unknown): Promise<unknown> {
+/** 离屏文档回推的音频片段 */
+export interface AudioChunkMessage {
+  type: 'audio-chunk'
+  chunk: { data: ArrayBuffer; mimeType: string; startedAt: number; duration: number }
+}
+
+/** 当前正在做语音识别的标签页（音频片段要回推给它） */
+let speechTabId: number | null = null
+
+function routeAudioChunk(message: AudioChunkMessage): void {
+  if (speechTabId === null) return
+  chrome.tabs
+    .sendMessage(speechTabId, {
+      type: 'speech-chunk',
+      chunk: message.chunk,
+    })
+    .catch(() => {})
+}
+
+async function handleMessage(message: unknown, sender?: chrome.runtime.MessageSender): Promise<unknown> {
   const msg = message as { type?: string }
   switch (msg.type) {
     case 'translate':
@@ -95,6 +129,22 @@ async function handleMessage(message: unknown): Promise<unknown> {
       return loadConfig()
     case 'get-providers':
       return { providers: listProviders(), vendors: VENDOR_PRESETS }
+    case 'get-asr-providers':
+      return { providers: listAsrProviders().map((p) => ({ id: p.id, name: p.name, mode: p.mode, requiresAuth: p.requiresAuth })) }
+    case 'speech-start': {
+      // 发起方标签页必须在最前面且正在播放，getMediaStreamId 才有意义
+      const tabId = sender?.tab?.id
+      if (tabId === undefined) return { ok: false, error: '无法确定当前标签页' }
+      const config = await loadConfig()
+      speechTabId = tabId
+      const result = await startTabAudioCapture(tabId, config.asr.chunkSeconds)
+      if (!result.ok) speechTabId = null
+      return result
+    }
+    case 'speech-stop':
+      speechTabId = null
+      await stopTabAudioCapture()
+      return { ok: true }
     case 'cache-stats':
       return getCacheStats()
     case 'clear-cache':
@@ -157,6 +207,11 @@ function setupContextMenus(): void {
     chrome.contextMenus.create({
       id: 'bilens-video-subtitle',
       title: 'BiLens：翻译视频字幕',
+      contexts: ['video', 'page'],
+    })
+    chrome.contextMenus.create({
+      id: 'bilens-speech-subtitle',
+      title: 'BiLens：AI 字幕（语音识别，Beta）',
       contexts: ['video', 'page'],
     })
     chrome.contextMenus.create({

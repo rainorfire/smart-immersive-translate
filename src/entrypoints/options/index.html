@@ -35,6 +35,91 @@
       </section>
 
       <section>
+        <h2>语音翻译（AI 字幕）</h2>
+        <p class="hint">
+          与上面的文本翻译引擎<strong>完全独立</strong>：视频没有字幕轨时，用它把语音转成字幕再翻译。
+        </p>
+        <label class="check">
+          <input id="asr-enabled" type="checkbox" />
+          <span>启用语音识别（AI 字幕）</span>
+        </label>
+        <div class="field">
+          <label for="asr-provider">识别引擎</label>
+          <select id="asr-provider"></select>
+        </div>
+
+        <!-- A 路 -->
+        <div class="field" id="asr-vendor-field">
+          <label for="asr-vendor">模型厂商</label>
+          <select id="asr-vendor"></select>
+        </div>
+        <div class="field" id="asr-model-field">
+          <label for="asr-model">语音模型</label>
+          <input id="asr-model" type="text" placeholder="FunAudioLLM/SenseVoiceSmall" />
+        </div>
+        <div class="field" id="asr-baseurl-field">
+          <label for="asr-baseurl">Base URL</label>
+          <input id="asr-baseurl" type="text" />
+        </div>
+        <label class="check" id="asr-reuse-field">
+          <input id="asr-reuse-key" type="checkbox" />
+          <span>复用文本翻译的 API Key（无需重复填写）</span>
+        </label>
+        <div class="field" id="asr-key-field">
+          <label for="asr-key">API Key</label>
+          <input id="asr-key" type="password" placeholder="sk-..." />
+        </div>
+
+        <!-- B 路 -->
+        <div class="field" id="asr-appkey-field">
+          <label for="asr-appkey">AppKey</label>
+          <input id="asr-appkey" type="text" />
+        </div>
+        <div class="field" id="asr-akid-field">
+          <label for="asr-akid">SecretId / AccessKeyId</label>
+          <input id="asr-akid" type="text" />
+        </div>
+        <div class="field" id="asr-aksecret-field">
+          <label for="asr-aksecret">SecretKey / AccessKeySecret / Token</label>
+          <input id="asr-aksecret" type="password" />
+        </div>
+
+        <!-- C 路 -->
+        <div class="field" id="asr-localmodel-field">
+          <label for="asr-localmodel">本地模型</label>
+          <select id="asr-localmodel">
+            <option value="tiny">tiny（最快，精度低）</option>
+            <option value="base">base（均衡）</option>
+            <option value="small">small（较准，较慢）</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="asr-language">识别语言</label>
+          <select id="asr-language">
+            <option value="auto">自动检测</option>
+            <option value="en">英语</option>
+            <option value="zh-CN">中文</option>
+            <option value="ja">日语</option>
+            <option value="ko">韩语</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="asr-chunk">音频切片时长（秒）</label>
+          <input id="asr-chunk" type="number" min="2" max="60" step="1" />
+        </div>
+        <label class="check">
+          <input id="asr-auto-translate" type="checkbox" />
+          <span>识别后自动翻译（走文本翻译配置）</span>
+        </label>
+        <p class="hint" id="asr-hint"></p>
+        <p class="hint">
+          用法：视频播放中按 <kbd>Alt</kbd> + <kbd>D</kbd> 或右键菜单「AI 字幕」。
+          需要 <code>tabCapture</code> 权限（已声明）。B 路需自行申请云服务账号。
+        </p>
+      </section>
+
+      <section>
         <h2>翻译行为</h2>
         <div class="field">
           <label for="target">目标语言</label>
@@ -81,6 +166,7 @@
           <li><kbd>Alt</kbd> + <kbd>W</kbd> 切换仅译文模式</li>
           <li><kbd>Alt</kbd> + <kbd>I</kbd> 翻译输入框</li>
           <li><kbd>Alt</kbd> + <kbd>S</kbd> 翻译视频字幕</li>
+          <li><kbd>Alt</kbd> + <kbd>D</kbd> AI 字幕（语音识别）</li>
         </ul>
         <button id="shortcut-settings" class="link">修改快捷键</button>
       </section>

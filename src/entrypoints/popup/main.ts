@@ -120,6 +120,16 @@ $('translate-video').addEventListener('click', async () => {
   setStatus('视频字幕已切换')
 })
 
+$('speech-subtitle').addEventListener('click', async () => {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
+  if (!tab?.id) return
+  await chrome.tabs.sendMessage(tab.id, { type: 'toggle-speech-subtitle' }).catch(() => {
+    setStatus('当前页面不可用')
+    return
+  })
+  setStatus('AI 字幕已切换')
+})
+
 /** 快捷开关：改动即保存，无需点保存按钮 */
 for (const box of [quickVideo, quickImage, quickHover, quickSelection]) {
   box.addEventListener('change', async () => {
